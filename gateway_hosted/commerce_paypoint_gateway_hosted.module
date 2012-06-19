@@ -177,7 +177,7 @@ function commerce_paypoint_gateway_hosted_settings_form($settings = NULL) {
 }
 
 /**
- * Generates the form to POST data to the off-site payment page..
+ * Generates the form to POST data to the off-site payment page.
  *
  * This form is displayed directly before redirecting to PayPoint.net's off-site
  * payment page. It is auto-submitted via JavaScript (enabled via the payment
