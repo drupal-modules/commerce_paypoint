@@ -271,9 +271,16 @@ function commerce_paypoint_gateway_hosted_data_get($order, $settings) {
   }
 
   // Add the billing details if they exist.
-  $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
-  if (!empty($billing_address)) {
-    $data['bill_name'] = $billing_address['name_line'];
+  if (!empty($order_wrapper->commerce_customer_billing->commerce_customer_address)) {
+    $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
+
+    if (!empty($billing_address['name_line'])) {
+      $data['bill_name'] = $billing_address['name_line'];
+    }
+    else {
+      $data['bill_name'] = $billing_address['first_name'] . ' ' . $billing_address['last_name'];
+    }
+
     $data['bill_company'] = $billing_address['organisation_name'];
     $data['bill_addr_1'] = $billing_address['thoroughfare'];
     $data['bill_addr_2'] = $billing_address['premise'];
