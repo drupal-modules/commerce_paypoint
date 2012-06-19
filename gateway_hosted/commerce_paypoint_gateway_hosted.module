@@ -483,6 +483,24 @@ function _commerce_paypoint_gateway_hosted_digest_parameter_create($order, $sett
  *
  * This function follows the same process to validate that the request came from
  * PayPoint.net's servers.
+ *
+ * Unfortunately, we cannot guarentee that the hash will match for all
+ * successful transactions. Therefore, instead of failing the checkout process
+ * we simply log the order ID and IP address of the request as a potential fraud
+ * attempt.
+ *
+ * There is a known issue where foreign or special characters can cause the hash
+ * to fail.
+ *
+ * @param $hash
+ *   The incoming md5 encrypted hash to check.
+ * @param $order
+ *   The order object.
+ * @param $settings
+ *   The payment method settings array.
+ *
+ * @return
+ *   A boolean value indicating whether the hash is authentic.
  */
 function _commerce_paypoint_gateway_hosted_hash_match($hash, $order, $settings) {
   // Currently hard-coded to use trans_id:amount:callback but could use any
