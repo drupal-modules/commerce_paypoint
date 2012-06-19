@@ -40,7 +40,6 @@ function commerce_paypoint_gateway_hosted_commerce_payment_method_info() {
     'base' => 'commerce_paypoint_gateway_hosted',
     'title' => t('PayPoint.net Gateway Hosted'),
     'short_title' => t('PayPoint.net'),
-    'title' => t('PayPoint.net Gateway Hosted'),
     'terminal' => FALSE,
     'offsite' => TRUE,
     'offsite_autoredirect' => TRUE,
