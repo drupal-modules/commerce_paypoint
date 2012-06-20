@@ -167,3 +167,23 @@ function _commerce_paypoint_cv2avs_message_parse($code) {
   }
 }
 
+/**
+ * Returns a human-readable mode of operation.
+ *
+ * @param $test_mode
+ *   The test mode request parameter.
+ *
+ * @return
+ *   The human-readable mode of operation string.
+ */
+function _commerce_paypoint_test_mode_title_get($test_mode) {
+  switch ($test_mode) {
+    case COMMERCE_PAYPOINT_TEST_MODE_TEST:
+      return t('Test');
+    case COMMERCE_PAYPOINT_TEST_MODE_DECLINE:
+      return t('Auto-decline');
+    case COMMERCE_PAYPOINT_TEST_MODE_LIVE:
+      return t('Live');
+  }
+}
+
