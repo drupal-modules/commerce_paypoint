@@ -321,7 +321,7 @@ function _commerce_paypoint_gateway_freedom_response_parse($result, &$response =
 /**
  * Initiates the XML-RPC request and returns the XML response data.
  *
- * Unfortunately, xmlrpc() returns an unparsable representation of the reponse
+ * Unfortunately, xmlrpc() returns an unparsable representation of the response
  * data. Therefore, we need to work around the problem by calling
  * drupal_http_request directly and passing the XML data on for parsing.
  *
