@@ -37,7 +37,7 @@ function commerce_paypoint_gateway_freedom_default_settings() {
     ),
     'duplicate_checking' => 1,
     'testing' => array(
-      'test_status' => 'true',
+      'test_status' => COMMERCE_PAYPOINT_TEST_MODE_TEST,
       'default_cv2avs' => 'ALL MATCH',
     ),
   );
@@ -95,9 +95,9 @@ function commerce_paypoint_gateway_freedom_settings_form($settings = NULL) {
     '#title' => t('Test status'),
     '#description' => t('"Test" mode will simulate an authorised callback without contacting the bank, "Auto-decline" will simulate a declined callback without contacting the bank, and "Live" will send the transaction to the bank for authorization.'),
     '#options' => array(
-      'true' => t('Test'),
-      'false' => t('Auto-decline'),
-      'live' => t('Live'),
+      COMMERCE_PAYPOINT_TEST_MODE_TEST => t('Test'),
+      COMMERCE_PAYPOINT_TEST_MODE_DECLINE => t('Auto-decline'),
+      COMMERCE_PAYPOINT_TEST_MODE_LIVE => t('Live'),
     ),
     '#default_value' => $settings['testing']['test_status'],
   );
@@ -148,7 +148,7 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
     'dups' => $settings['duplicate_checking'] === 1 ? 'true' : 'false',
   );
   // Values of either 'true' or 'false' mean we're in testing mode.
-  if ($settings['testing']['test_status'] != 'live') {
+  if ($settings['testing']['test_status'] != COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
     // The Integration Guide suggests that we avoid adding the test_status
     // parameter when in live mode.
     $options['test_status'] = $settings['testing']['test_status'];
