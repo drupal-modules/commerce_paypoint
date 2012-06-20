@@ -181,7 +181,12 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
   $billing['email'] = $order->mail;
   $billing_string = commerce_paypoint_gateway_freedom_key_value_string($billing);
 
-  $expiry_date = date('my', mktime(0, 0, 0, $credit_card['exp_month'], 1, $credit_card['exp_year']));
+  $expiry_date = commerce_paypoint_gateway_freedom_card_date_format($credit_card['exp_month'], $credit_card['exp_year']);
+
+  $start_date = '';
+  if (!empty($credit_card['start_month']) && !empty($credit_card['start_year'])) {
+    $start_date = commerce_paypoint_gateway_freedom_card_date_format($credit_card['start_month'], $credit_card['start_year']);
+  }
 
   $data = array(
     'mid' => $settings['merchant']['merchant_id'],
@@ -197,7 +202,7 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
     'expiry_date' => $expiry_date,
     // Issue number only applies to Maestro or Solo cards.
     'issue_number' => $credit_card['issue'],
-    'start_date' => '07/11', // Could be empty.
+    'start_date' => $start_date,
     'order' => '',
     'shipping' => '',
     'billing' => $billing_string,
@@ -205,6 +210,13 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
   );
 
   return $data;
+}
+
+/**
+ * Formats a credit card start or expiry date in mmyy format.
+ */
+function commerce_paypoint_gateway_freedom_card_date_format($month, $year) {
+  return date('my', mktime(0, 0, 0, $month, 1, $year));
 }
 
 /**
