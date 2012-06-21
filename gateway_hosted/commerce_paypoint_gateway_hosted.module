@@ -352,6 +352,10 @@ function commerce_paypoint_gateway_hosted_data_get($order, $settings) {
   // should always be supplied.
   $data['bill_email'] = $order->mail;
 
+  if (variable_get('commerce_paypoint_debug', FALSE)) {
+    debug($data);
+  }
+
   return $data;
 }
 

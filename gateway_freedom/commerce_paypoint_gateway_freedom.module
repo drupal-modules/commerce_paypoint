@@ -209,6 +209,10 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
     'options' => $options_string,
   );
 
+  if (variable_get('commerce_paypoint_debug', FALSE)) {
+    debug($data);
+  }
+
   return $data;
 }
 
