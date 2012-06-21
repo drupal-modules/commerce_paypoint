@@ -397,7 +397,7 @@ function commerce_paypoint_gateway_hosted_callback() {
     case 'A': // Transaction authorised by bank.
       // Deferred transactions don't take the payment at the time of sale so
       // mark the payment as pending until it can be manually released.
-      if (!empty($response['deferred']) && $response['deferred'] === COMMERCE_PAYMENT_DEFERRED_TRUE) {
+      if (!empty($response['deferred']) && $response['deferred'] === 'true') {
         $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
       }
       else {
