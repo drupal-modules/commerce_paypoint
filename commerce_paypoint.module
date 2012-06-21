@@ -14,6 +14,13 @@ define('COMMERCE_PAYPOINT_TEST_MODE_DECLINE', 'false');
 define('COMMERCE_PAYPOINT_TEST_MODE_LIVE', 'live');
 
 /**
+ * Deferred transaction modes.
+ */
+define('COMMERCE_PAYMENT_DEFERRED_DISABLED', 'false');
+define('COMMERCE_PAYMENT_DEFERRED_TRUE', 'true');
+define('COMMERCE_PAYMENT_DEFERRED_REUSE', 'reuse');
+
+/**
  * Retrieves the order total in decimal format.
  *
  * @param $order
