@@ -128,9 +128,9 @@ function commerce_paypoint_gateway_hosted_settings_form($settings = NULL) {
     '#title' => t('Transaction mode'),
     '#description' => t('Deferred transactions are useful if you want to take orders for items that you cannot always guarantee will be in stock. Using deferred transactions, you can take an initial authorisation (at which point no money has actually been taken) and then, when your product arrives in stock, you can release the funds for the deferred transaction and ship the product out to your customer. It is illegal in some countries to take payment for something which you don\'t have in stock.
 <ul>
-  <li>"Defer" will authorise only one unit of currency. This is useful for avoiding tying up funds in your customer\'s account if all you want to do is get their details into the system.</li>
+  <li>"Defer" will authorise only one unit of currency. This is useful to avoid tying up funds in your customer\'s account if all you want to do is get their details into the system.</li>
   <li>"Full" will authorise the full amount of the transaction and freeze the funds in the customer\'s account. A new authorisation takes place when funds are released so be careful not to ship goods before confirming release of funds.</li>
-  <li>"Reuse" will authorise the full amount of the initial transaction but on release will use the original authorisation code (which was obtained by the initial deferred transaction - if it is still valid.) If not still valid, releasing will cause a new authorisation to take place (as is the case with "Defer" and "Full").</li>
+  <li>"Reuse" will authorise the full amount of the initial transaction but on release will use the original authorisation code (which was obtained by the initial deferred transaction - if it is still valid). If not still valid, releasing will cause a new authorisation to take place (as is the case with "Defer" and "Full").</li>
 </ul>'),
     '#options' => array(
       COMMERCE_PAYMENT_DEFERRED_DISABLED => t('Disabled'),
@@ -280,21 +280,6 @@ function commerce_paypoint_gateway_hosted_data_get($order, $settings) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $total = commerce_line_items_total($order_wrapper->commerce_line_items);
 
-  // The deferred parameter is either 'true', 'reuse' or a compound string
-  // of options specifying the original authorisation code reuse window e.g.,
-  // 'reuse:7:1'.
-  $deferred = array(
-    $settings['deferred']['transaction_mode'],
-  );
-  if ($settings['deferred']['transaction_mode'] === COMMERCE_PAYMENT_DEFERRED_REUSE) {
-    if ($settings['deferred']['reuse_credit_card_days'] !== 7 ||
-        $settings['deferred']['reuse_debit_card_days'] !== 1) {
-      $deferred[] = $settings['deferred']['reuse_credit_card_days'];
-      $deferred[] = $settings['deferred']['reuse_debit_card_days'];
-    }
-  }
-  $deferred_string = implode(':', $deferred);
-
   $data = array(
     'merchant' => $settings['merchant']['merchant_id'],
     'trans_id' => $order->order_id,
@@ -309,7 +294,7 @@ function commerce_paypoint_gateway_hosted_data_get($order, $settings) {
     'md_flds' => 'trans_id:amount:callback',
     'digest' => _commerce_paypoint_gateway_hosted_digest_parameter_create($order, $settings),
     'template' => $settings['template'],
-    'deferred' => $deferred_string,
+    'deferred' => commerce_paypoint_deferred_parameter_format($settings),
   );
 
   // Values of either 'true' or 'false' mean we're in testing mode.

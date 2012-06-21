@@ -194,3 +194,29 @@ function _commerce_paypoint_test_mode_title_get($test_mode) {
   }
 }
 
+/**
+ * Returns the "deferred" request parameter in the required format.
+ *
+ * The deferred parameter is either 'true' or a compound string of options
+ * specifying the original authorisation code reuse window e.g., 'reuse:7:1'.
+ *
+ * @param $settings
+ *   The payment method settings array.
+ *
+ * @return
+ *   The formatted "deferred" request parameter string.
+ */
+function commerce_paypoint_deferred_parameter_format($settings) {
+  $deferred = array(
+    $settings['deferred']['transaction_mode'],
+  );
+
+  // If the deferred transaction mode is 'reuse', add the reuse periods.
+  if ($settings['deferred']['transaction_mode'] === COMMERCE_PAYMENT_DEFERRED_REUSE) {
+    $deferred[] = $settings['deferred']['reuse_credit_card_days'];
+    $deferred[] = $settings['deferred']['reuse_debit_card_days'];
+  }
+
+  return implode(':', $deferred);
+}
+

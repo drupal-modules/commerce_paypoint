@@ -36,6 +36,11 @@ function commerce_paypoint_gateway_freedom_default_settings() {
       'vpn_password' => 'secpay',
     ),
     'duplicate_checking' => 1,
+    'deferred' => array(
+      'transaction_mode' => 'false',
+      'reuse_credit_card_days' => 7,
+      'reuse_debit_card_days' => 1,
+    ),
     'testing' => array(
       'test_status' => COMMERCE_PAYPOINT_TEST_MODE_TEST,
       'default_cv2avs' => 'ALL MATCH',
@@ -77,6 +82,43 @@ function commerce_paypoint_gateway_freedom_settings_form($settings = NULL) {
     '#description' => t('Enter the VPN password that you entered into the merchant admin inferface on the PayPoint.net site. This should be between 8 and 30 characters long.'),
     '#maxlength' => 30,
     '#default_value' => $settings['merchant']['vpn_password'],
+  );
+
+  $form['deferred'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Deferred transactions'),
+  );
+  $form['deferred']['transaction_mode'] = array(
+    '#type' => 'select',
+    '#title' => t('Transaction mode'),
+    '#description' => t('Deferred transactions are useful if you want to take orders for items that you cannot always guarantee will be in stock. Using deferred transactions, you can take an initial authorisation (at which point no money has actually been taken) and then, when your product arrives in stock, you can release the funds for the deferred transaction and ship the product out to your customer. It is illegal in some countries to take payment for something which you don\'t have in stock.
+<ul>
+  <li>"Defer" will authorise only one unit of currency. This is useful avoid tying up funds in your customer\'s account if all you want to do is get their details into the system.</li>
+  <li>"Full" will authorise the full amount of the transaction and freeze the funds in the customer\'s account. A new authorisation takes place when funds are released so be careful not to ship goods before confirming release of funds.</li>
+  <li>"Reuse" will authorise the full amount of the initial transaction but on release will use the original authorisation code (which was obtained by the initial deferred transaction - if it is still valid). If not still valid, releasing will cause a new authorisation to take place (as is the case with "Defer" and "Full").</li>
+</ul>'),
+    '#options' => array(
+      COMMERCE_PAYMENT_DEFERRED_DISABLED => t('Disabled'),
+      COMMERCE_PAYMENT_DEFERRED_TRUE => t('Defer'),
+      COMMERCE_PAYMENT_DEFERRED_REUSE => t('Reuse'),
+    ),
+    '#default_value' => $settings['deferred']['transaction_mode'],
+  );
+  $form['deferred']['reuse_credit_card_days'] = array(
+    '#type' => 'select',
+    '#title' => t('Credit card reuse days'),
+    '#multiple' => FALSE,
+    '#description' => t('The number of days within which a credit card transaction should reuse the same authorisation code.'),
+    '#options' => drupal_map_assoc(range(1, 14)),
+    '#default_value' => $settings['deferred']['reuse_credit_card_days'],
+  );
+  $form['deferred']['reuse_debit_card_days'] = array(
+    '#type' => 'select',
+    '#title' => t('Debit card reuse days'),
+    '#multiple' => FALSE,
+    '#description' => t('The number of days within which a debit card transaction should reuse the same authorisation code.'),
+    '#options' => drupal_map_assoc(range(1, 14)),
+    '#default_value' => $settings['deferred']['reuse_debit_card_days'],
   );
 
   $form['duplicate_checking'] = array(
@@ -146,7 +188,9 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
     'cv2' => $credit_card['code'],
     'currency' => $total['currency_code'],
     'dups' => $settings['duplicate_checking'] === 1 ? 'true' : 'false',
+    'deferred' => commerce_paypoint_deferred_parameter_format($settings),
   );
+
   // Values of either 'true' or 'false' mean we're in testing mode.
   if ($settings['testing']['test_status'] != COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
     // The Integration Guide suggests that we avoid adding the test_status
@@ -401,7 +445,15 @@ function commerce_paypoint_gateway_freedom_transaction($order, $payment_method, 
   // failure reasons (such as P:NEC) are handled separately below.
   switch ($response['code']) {
     case 'A': // Transaction authorised by bank.
-      $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+      // Deferred transactions don't take the payment at the time of sale so
+      // mark the payment as pending until it can be manually released.
+      if (!empty($response['deferred']) && $response['deferred'] === COMMERCE_PAYMENT_DEFERRED_TRUE) {
+        $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+      }
+      else {
+        $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+      }
+
       $messages[] = _commerce_paypoint_response_message_calculate($response);
       break;
 
