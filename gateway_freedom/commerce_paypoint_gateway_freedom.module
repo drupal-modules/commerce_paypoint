@@ -438,6 +438,7 @@ function commerce_paypoint_gateway_freedom_transaction($order, $payment_method, 
   $transaction->amount = commerce_currency_decimal_to_amount($amount, $currency);
   $transaction->currency_code = $currency;
   $transaction->payload[REQUEST_TIME] = $response;
+  $transaction->remote_status = _commerce_paypoint_response_remote_status_calculate($response);
 
   $messages = array();
 

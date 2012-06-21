@@ -104,6 +104,43 @@ function _commerce_paypoint_response_message_calculate($response) {
 }
 
 /**
+ * Calculates the human-readable remote status.
+ *
+ * @param $response
+ *   The response array.
+ *
+ * @return
+ *   A human-readable response remote status.
+ */
+function _commerce_paypoint_response_remote_status_calculate($response) {
+  $code = $response['code'];
+
+  switch ($code) {
+    case 'A':
+      if (!empty($response['deferred']) && $response['deferred'] === 'true') {
+        return t('Deferred');
+      }
+
+      return t('Payment taken');
+
+    case 'N':
+      return t('Not authorised');
+
+    case 'C':
+      return t('Communication problem');
+
+    case 'F':
+      return t('Fraud condition');
+  }
+
+  if (strpos($code, 'P:') === 0) {
+    return t('Pre-auth failed');
+  }
+
+  return t('Unknown');
+}
+
+/**
  * Matches the "resp_code" callback parameter to its human-readable equivalent.
  *
  * The "resp_code" callback parameter is only returned when a transaction is
