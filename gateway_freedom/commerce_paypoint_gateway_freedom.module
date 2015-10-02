@@ -225,6 +225,7 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
   $billing['email'] = $order->mail;
   $billing_string = commerce_paypoint_gateway_freedom_key_value_string($billing);
 
+  // We must format the year and month to format the service expects (mmyy).
   $expiry_date = commerce_paypoint_gateway_freedom_card_date_format($credit_card['exp_month'], $credit_card['exp_year']);
 
   $start_date = '';
@@ -233,24 +234,24 @@ function commerce_paypoint_gateway_freedom_data_get($order, $settings, $pane_val
   }
 
   $data = array(
-    'mid' => $settings['merchant']['merchant_id'],
-    'vpn_pswd' => $settings['merchant']['vpn_password'],
+    'mid' => $settings['merchant']['merchant_id'], // Merchant id, mid.
+    'vpn_pswd' => $settings['merchant']['vpn_password'], // VPN password.
     // Append the timestamp to the transaction ID to ensure that it is unique
     // for each payment attempt. Allows the customer to retry following failed
     // payment attempts.
-    'trans_id' => $order->order_id . '-' . REQUEST_TIME,
-    'ip' => ip_address(),
-    'name' => $credit_card['owner'],
+    'trans_id' => $order->order_id . '-' . REQUEST_TIME, // Transaction id, trans_id .
+    'ip' => ip_address(), // External IP address of the cardholder.
+    'name' => $credit_card['owner'], // Cardholder name.
     'card_number' => $credit_card['number'],
     'amount' => (string) _commerce_paypoint_order_total_get($order),
-    'expiry_date' => $expiry_date,
+    'expiry_date' => $expiry_date, // Expiration date, formatted as mm/yy or mmyy.
     // Issue number only applies to Maestro or Solo cards.
     'issue_number' => $credit_card['issue'],
     'start_date' => $start_date,
     'order' => '',
-    'shipping' => '',
-    'billing' => $billing_string,
-    'options' => $options_string,
+    'shipping' => '', // Shipping address.
+    'billing' => $billing_string, // @fixme
+    'options' => $options_string, // Extra options.
   );
 
   if (variable_get('commerce_paypoint_debug', FALSE)) {
@@ -341,7 +342,7 @@ function commerce_paypoint_gateway_freedom_realtime_transaction_request($order, 
 
   // If the call failed, log an error.
   if ($result === FALSE) {
-    watchdog('paypoint', 'XML-RPC error: @errno. Message: @message.', array('@errno' => xmlrpc_errno(), '@message' => xmlrpc_error_msg()), WATCHDOG_ERROR);
+    watchdog('PayPoint', 'XML-RPC error: @errno. Message: @message.', array('@errno' => xmlrpc_errno(), '@message' => xmlrpc_error_msg()), WATCHDOG_ERROR);
   }
 
   // Parse the resultant XML into an array of response parameters.
@@ -400,7 +401,7 @@ function commerce_paypoint_gateway_freedom_xmlrpc_request($url, $method, $data) 
   $message = xmlrpc_message($result->data);
 
   if (!xmlrpc_message_parse($message)) {
-    xmlrpc_error(-32700, t('Parse error. Not well formed'));
+    xmlrpc_error(-32700, t('Parse error. Not well formed.'));
     return FALSE;
   }
 
