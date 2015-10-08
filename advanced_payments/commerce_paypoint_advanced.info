@@ -1,0 +1,5 @@
+name = Commerce PayPoint Advanced Payments
+description = Integrates PayPoint's Advanced Payments service with Drupal Commerce.
+package =  Commerce (contrib)
+dependencies[] = commerce_paypoint
+core = 7.x
