@@ -21,7 +21,6 @@ function commerce_paypoint_advanced_requirements($phase) {
     }
 
     $settings = $payment_method['settings'];
-
     $merchant = $settings['merchant'];
 
     // Add a status message to display the mode of operation.
@@ -68,9 +67,17 @@ function commerce_paypoint_advanced_requirements($phase) {
         );
       }
     }
+    $url = commerce_paypoint_advanced_server_url($settings['testing']['test_status']);
+
+    // Check connectivity.
+    module_load_include('inc', 'commerce_paypoint_advanced', 'commerce_paypoint_advanced.class');
+    $hosted = $settings['connectivity']['request_type'] == 'hosted';
+    $ppo = new PPOAdvancedPayment($url, $merchant['username'], $merchant['password'], $hosted);
+    $res = $ppo->send_ping();
+    var_dump($ppo, $res); exit;
 
   }
 
   return $requirements;
 }
-    
+

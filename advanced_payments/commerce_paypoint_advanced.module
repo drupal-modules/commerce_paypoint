@@ -17,6 +17,7 @@ define('PAYPOINT_ADV_LIVE_API_ENDPOINT', 'https://api.paypoint.net');
  * Implements hook_form_alter().
  */
 function commerce_paypoint_advanced_form_alter(&$form, &$form_state, $form_id) {
+  // var_dump($form_id);
 }
 
 /**
@@ -30,6 +31,13 @@ function commerce_paypoint_advanced_commerce_payment_method_info() {
     'title' => t('PayPoint.net Advanced Payments'),
     'description' => t('Integrates PayPoint.net Advanced Payments service.'),
     'short_title' => t('PayPoint.net'),
+    'display_title' => t('Credit or Debit card (PayPoint)'),
+    'active' => TRUE,
+    'offsite' => TRUE,
+    'terminal' => FALSE,
+    'callbacks' => array(),
+    'offsite_autoredirect' => FALSE,
+    'file' => 'includes/commerce_paypoint_advanced_server.inc',
   );
 
   return $payment_methods;
@@ -89,6 +97,49 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
   // This is only relevant before the form is saved for the first time.
   $settings += commerce_paypoint_advanced_default_settings();
 
+  $form['integration_type'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('PayPoint Integration Options'),
+  );
+
+  $form['integration_type']['server_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Server (Including InFrame)'),
+    '#default_value' => $settings['integration_type']['server_enabled'],
+  );
+
+  // Items only relevant to PayPoint Server integration.
+  $form['integration_type'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => 'PayPoint Integration Specific Settings',
+    '#collapsible' => TRUE,
+    '#collapsed'   => TRUE,
+  );
+
+  $form['integration_type']['use_iframe'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Display payment form in an iFrame'),
+    '#description'   => t('Use an iFrame to make the payment page appear to be an integrated part of your site.'),
+    '#default_value' => settings['integration_type']['use_iframe'],
+  );
+
+  /*
+  $form['integration_type']['use_low_profile'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Use low profile payment pages'),
+    '#description'   => t('Use the less graphical, simpler set of payment pages which look better inside an iFrame.'),
+    '#default_value' => $settings['integration_type']['use_low_profile'],
+  );
+  */
+
+  $form['integration_type']['form_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Form (Completely outsourcing your online payments to PayPoint.'),
+    '#default_value' => $settings['integration_type']['form_enabled'],
+
+  );
+
+  /*
   $form['card_types'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Limit accepted credit cards to the following types'),
@@ -97,6 +148,8 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#default_value' => $settings['card_types'],
     '#required' => TRUE,
   );
+  */
+
   $form['currency_code'] = array(
     '#type' => 'select',
     '#title' => t('Default currency'),
@@ -364,6 +417,7 @@ function commerce_paypoint_advanced_key_value_string($data) {
 /**
  * Payment method callback: Displays the payment form.
  */
+/*
 function commerce_paypoint_advanced_submit_form($payment_method, $pane_values, $checkout_pane, $order) {
   module_load_include('inc', 'commerce_payment', 'includes/commerce_payment.credit_card');
 
@@ -399,11 +453,13 @@ function commerce_paypoint_advanced_submit_form($payment_method, $pane_values, $
   // Default to a known test credit card number, see: Gateway_Freedom.pdf (Test Card Numbers).
   return commerce_payment_credit_card_form($fields, array('number' => '4111111111111111'));
 }
+*/
 
 /**
  * Payment method callback: redirect form, a wrapper around the module's general
  *   use function for building a form.
  */
+/*
 function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $payment_method) {
   // Return an error if the enabling action's settings haven't been configured.
   if (empty($payment_method['settings']['business'])) {
@@ -427,10 +483,12 @@ function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, 
 
   return commerce_paypoint_advanced_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 }
+*/
 
 /**
  * Payment method callback: redirect form return validation.
  */
+/*
 function _commerce_paypoint_advanced_redirect_form_validate($order, $payment_method) {
   if (!empty($payment_method['settings']['paycash_logging']) &&
     $payment_method['settings']['paycash_logging'] == 'full_ipn') {
@@ -443,10 +501,12 @@ function _commerce_paypoint_advanced_redirect_form_validate($order, $payment_met
     return FALSE;
   }
 }
+*/
 
 /**
  * Payment method callback: checkout form validation.
  */
+/*
 function commerce_paypoint_advanced_submit_form_validate($payment_method, $pane_form, $pane_values, $order, $form_parents = array()) {
   module_load_include('inc', 'commerce_payment', 'includes/commerce_payment.credit_card');
 
@@ -458,11 +518,14 @@ function commerce_paypoint_advanced_submit_form_validate($payment_method, $pane_
     return FALSE;
   }
 }
+*/
 
 /**
  * Payment method callback: checkout form submission.
  */
+/*
 function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
+
   // Display an error and prevent the payment attempt if payment method has not been configured yet.
   if (empty($payment_method['settings'])) {
     drupal_set_message(t('This payment method must be configured by an administrator before it can be used.'), 'error');
@@ -500,7 +563,6 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
   // order before building the name-value pair array.
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
 
-  /*
   $valid_billing_address = TRUE;
 
   if (empty($order->commerce_customer_billing) || empty($order_wrapper->commerce_customer_billing->value()->commerce_customer_address)) {
@@ -544,7 +606,6 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
 
     return FALSE;
   }
-  */
 
   $response = commerce_paypoint_advanced_realtime_transaction_request($order, $payment_method['settings'], $pane_values);
 
@@ -552,6 +613,7 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
   // created for the order to log either the success or the failure.
   return commerce_paypoint_advanced_transaction($payment_method, $order, $response);
 }
+*/
 
 /**
  * Makes the call to the XML-RPC endpoint and returns the response array.
@@ -1020,22 +1082,12 @@ function commerce_paypoint_advanced_order_form($form, &$form_state, $order, $set
  * @return
  *   The URL to use to submit requests to the PayPoint server.
  */
-function commerce_paypoint_advanced_server_url($server, $request_type = 'hosted') {
-  switch ($server) {
-    case 'sandbox':
-      switch ($request_type) {
-        case 'hosted':
-          return PAYPOINT_ADV_MITE_HOSTED_ENDPOINT;
-        case 'API':
-          return PAYPOINT_ADV_MITE_API_ENDPOINT;
-      }
-    case 'live':
-      switch ($request_type) {
-        case 'hosted':
-          return PAYPOINT_ADV_LIVE_HOSTED_ENDPOINT;
-        case 'API':
-          return PAYPOINT_ADV_LIVE_API_ENDPOINT;
-      }
+function commerce_paypoint_advanced_server_url($mode, $hosted = TRUE) {
+  switch ($mode) {
+    case COMMERCE_PAYPOINT_TEST_MODE_TEST:
+      return $hosted ? PAYPOINT_ADV_MITE_HOSTED_ENDPOINT : PAYPOINT_ADV_MITE_API_ENDPOINT;
+    case COMMERCE_PAYPOINT_TEST_MODE_LIVE:
+      return $hosted ? PAYPOINT_ADV_LIVE_HOSTED_ENDPOINT : PAYPOINT_ADV_LIVE_API_ENDPOINT;
   }
 }
 
