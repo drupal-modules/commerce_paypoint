@@ -21,6 +21,23 @@ function commerce_paypoint_advanced_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function commerce_paypoint_advanced_menu() {
+  $items = array();
+
+  // Define a path for a waiting page displayed whilst the iframe is loading.
+  $items['commerce_paypoint/paypoint_waiting_page'] = array(
+    'page callback' => 'commerce_paypoint_advanced_waiting_page',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/commerce_paypoint_advanced_server.inc',
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_commerce_payment_method_info().
  */
 function commerce_paypoint_advanced_commerce_payment_method_info() {
@@ -52,6 +69,9 @@ function commerce_paypoint_advanced_default_settings() {
   $default_currency = variable_get('commerce_default_currency', 'GBP');
 
   return array(
+    'integration_type' => array(
+      'use_iframe' => TRUE,
+    ),
     'merchant' => array(
       'username' => '',
       'password' => '',
@@ -97,31 +117,26 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
   // This is only relevant before the form is saved for the first time.
   $settings += commerce_paypoint_advanced_default_settings();
 
+  // Items only relevant to PayPoint Server integration.
   $form['integration_type'] = array(
     '#type' => 'fieldset',
     '#title' => t('PayPoint Integration Options'),
-  );
-
-  $form['integration_type']['server_enabled'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Server (Including InFrame)'),
-    '#default_value' => $settings['integration_type']['server_enabled'],
-  );
-
-  // Items only relevant to PayPoint Server integration.
-  $form['integration_type'] = array(
-    '#type'        => 'fieldset',
-    '#title'       => 'PayPoint Integration Specific Settings',
-    '#collapsible' => TRUE,
-    '#collapsed'   => TRUE,
   );
 
   $form['integration_type']['use_iframe'] = array(
     '#type'          => 'checkbox',
     '#title'         => t('Display payment form in an iFrame'),
     '#description'   => t('Use an iFrame to make the payment page appear to be an integrated part of your site.'),
-    '#default_value' => settings['integration_type']['use_iframe'],
+    '#default_value' => $settings['integration_type']['use_iframe'] ?: TRUE,
   );
+
+  /*
+  $form['integration_type']['server_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Server (Including InFrame)'),
+    '#default_value' => $settings['integration_type']['server_enabled'],
+  );
+  */
 
   /*
   $form['integration_type']['use_low_profile'] = array(
@@ -132,12 +147,14 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
   );
   */
 
+  /*
   $form['integration_type']['form_enabled'] = array(
     '#type' => 'checkbox',
     '#title' => t('Form (Completely outsourcing your online payments to PayPoint.'),
     '#default_value' => $settings['integration_type']['form_enabled'],
 
   );
+  */
 
   /*
   $form['card_types'] = array(
