@@ -11,7 +11,6 @@
  */
 function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $payment_method) {
 
-
   // Return an error if the enabling action's settings haven't been configured.
   if (empty($payment_method['settings'])) {
     drupal_set_message(t('This payment method must be configured by an administrator before it can be used.'), 'error');
@@ -28,6 +27,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
 
   // Add tax if we have sales tax in the order.
   $total['amount'] = $wrapper->commerce_order_total->amount->value();
+  $total['currency_code'] = $total['currency_code'] ?: 'GBP';
 
   // Load customer profile.
   $profile = commerce_customer_profile_load($order->commerce_customer_billing[LANGUAGE_NONE][0]['profile_id']);
@@ -42,6 +42,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
     $delivery_profile = commerce_customer_profile_load($order->commerce_customer_shipping[LANGUAGE_NONE][0]['profile_id']);
     $delivery_address = $delivery_profile->commerce_customer_address[LANGUAGE_NONE][0];
   }
+//var_dump($profile, $billing_address); exit;
 
   $settings = $payment_method['settings'];
   //var_dump(__FUNCTION__); exit;
@@ -51,8 +52,32 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $hosted = $settings['connectivity']['request_type'] == 'hosted';
   $url = commerce_paypoint_advanced_server_url($settings['testing']['test_status']);
   $auth = $settings['merchant'];
+
+  // Initialize and send the PayPoint request.
   $instId = 5301067; // @fixme
+  $returnUrl = 'checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'];
+  $notifyUrl = url('commerce_paypoint_advanced/todo', array('absolute' => TRUE));
+  $email = user_load($order->uid)->mail;
+  $address = array(
+    'line1'         => $billing_address['thoroughfare'],
+    'line2'         => $billing_address['premise'],
+    'line3'         => $billing_address['sub_premise'],
+    'line4'         => $billing_address['organisation_name'],
+    'city'          => $billing_address['locality'],
+    'region'        => $billing_address['administrative_area'],
+    'postcode'      => $billing_address['postal_code'],
+    'countryCode'   => $billing_address['country'],
+  );
+  $telephone = '';
+  $ip_address = ip_address();
   $ppo = new PPOAdvancedPayment($url, $auth['username'], $auth['password'], $instId, $hosted);
+  $ppo->setSessionReturnUrl($returnUrl);
+  $ppo->setSessionNotificationUrl($notifyUrl);
+  $ppo->setCustomerDetails($billing_address['name_line'], $address, $telephone, $email, $ip_address);
+  $ppo->setTransactionMerchantReference('your_reference_here'); // @fixme
+  $ppo->setTransactionMoneyFixed($total['amount'], $total['currency_code']);
+  $ppo->setCustomerNew();
+  $ppo->setCustomerMerchantId('1111111111112'); // @fixme
   $response = array();
   try {
     // Call PayPoint to get payment form that can then be included in an iFrame.
@@ -61,19 +86,21 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   }
   catch (Exception $e) {
     watchdog_exception('commerce_paypoint_advanced', $e);
-    $code_err = $e->getLastCode();
   }
   $response = $ppo->getLastResponse();
   $status = $ppo->getLastStatus();
   $code = $ppo->getLastCode();
   $data = $ppo->getLastData();
+  if ($settings['connectivity']['debug'] || variable_get('commerce_paypoint_debug', FALSE)) {
+    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => json_encode($ppo->getLastResponse())), WATCHDOG_DEBUG);
+  }
 
   // Create a new payment transaction and setup the amount.
   $transaction = commerce_payment_transaction_new('commerce_paypoint_advanced', $order->order_id);
   $transaction->amount = $total['amount'];
   $transaction->currency_code = $total['currency_code'];
   $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-  $transaction->instance_id = $payment_method['instance_id'];
+  $transaction->instance_id = $instId;
   $transaction->remote_id = $data->sessionId;
   //$transaction->payload = $response;
   //$transaction->payload['VendorTxCode'] = $data['VendorTxCode'];
@@ -121,32 +148,18 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
 
       exit;
 
-    /*
-    case 'FAIL':
-      // $transaction->payload['vps_status'] = 'FAIL';
+    case 'FAILED':
       $transaction->remote_status = $status;
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
-      $transaction->message = 'FAIL Response from Sagepay';
+      $transaction->message = 'FAIL Response from PayPoint';
       commerce_payment_transaction_save($transaction);
       drupal_goto('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key']);
       break;
-
-    case 'INVALID':
-      // $transaction->payload['vps_status'] = 'INVALID';
-      $transaction->remote_status = $status;
-      $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
-      $transaction->message = $response['StatusDetail'];
-      commerce_payment_transaction_save($transaction);
-      watchdog('commerce_paypoint_advanced', 'INVALID Status response from PayPoint for order %order_id', array('%order_id' => $order->order_id), WATCHDOG_ERROR);
-      drupal_goto('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key']);
-      break;
-    */
 
     default:
-      // $transaction->payload['vps_status'] = 'UNKNOWN';
       $transaction->remote_status = $status;
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
-      $transaction->message = 'Unknown or invalid response from Sagepay';
+      $transaction->message = 'Unknown or invalid response from PayPoint';
       commerce_payment_transaction_save($transaction);
       watchdog('commerce_paypoint_advanced', 'Unrecognised Status response from PayPoint for order %order_id (%response_code)', array('%order_id' => $order->order_id, '%response_code' => $transaction_status[0]), WATCHDOG_ERROR);
       drupal_goto('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key']);

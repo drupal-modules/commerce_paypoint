@@ -89,9 +89,8 @@ function commerce_paypoint_advanced_requirements($phase) {
 
     $requirements['paypoint_advanced_connectivity_test'] = array(
       'title' => t('PayPoint Connectivity Test'),
-      'value' => $response->status_message == 'OK' ? $response->status_message : print_r($response),
-      'description' => implode(' ', $errors),
-      'severity' => $response->status_message == 'OK' ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      'value' => $ppo->getLastStatus(),
+      'severity' => @$response->status_message == 'OK' ? REQUIREMENT_OK : REQUIREMENT_ERROR,
     );
 
   }

@@ -12,6 +12,7 @@ define('PAYPOINT_ADV_MITE_HOSTED_ENDPOINT', 'https://hosted.mite.paypoint.net');
 define('PAYPOINT_ADV_MITE_API_ENDPOINT', 'https://api.mite.paypoint.net:2443');
 define('PAYPOINT_ADV_LIVE_HOSTED_ENDPOINT', 'https://hosted.paypoint.net');
 define('PAYPOINT_ADV_LIVE_API_ENDPOINT', 'https://api.paypoint.net');
+define('PAYPOINT_ADV_DEBUG', FALSE); // Override in the settings.
 
 /**
  * Implements hook_form_alter().
@@ -32,6 +33,15 @@ function commerce_paypoint_advanced_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'file' => 'includes/commerce_paypoint_advanced_server.inc',
+  );
+
+  // View help topic index.
+  $items['admin/help/commerce_paypoint_advanced'] = array(
+    'title' => "PayPoint.net's Advanced Payments",
+    'description' => "Integration of 3rd generation PayPoint.net's Advanced Payments with Drupal Commerce",
+    'page callback' => 'commerce_paypoint_advanced_index_page',
+    'access arguments' => array('view advanced help index'),
+    'weight' => 9,
   );
 
   return $items;
@@ -79,6 +89,7 @@ function commerce_paypoint_advanced_default_settings() {
     'connectivity' => array(
       'server' => 'sandbox',
       'request_type' => 'hosted',
+      'debug' => PAYPOINT_ADV_DEBUG ?: variable_get('commerce_paypoint_debug', FALSE),
     ),
     'duplicate_checking' => 1,
     'deferred' => array(
@@ -223,8 +234,13 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#description' => t('There are three ways you can access payment services: as a Hosted solution, via an API or using an SDK. Currently only Hosted Cashier is supported.'),
     '#default_value' => $settings['connectivity']['request_type'],
   );
+  $form['connectivity']['debug'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug PayPoint request/responses.'),
+    '#description' => t('Log all data from requests/responses.'),
+    '#default_value' => $settings['connectivity']['debug'] ?: variable_get('commerce_paypoint_debug', FALSE),
+  );
 
-  /*
   $form['deferred'] = array(
     '#type' => 'fieldset',
     '#title' => t('Deferred transactions'),
@@ -232,7 +248,7 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
   $form['deferred']['transaction_mode'] = array(
     '#type' => 'select',
     '#title' => t('Transaction mode'),
-    '#description' => t('Deferred transactions are useful if you want to take orders for items that you cannot always guarantee will be in stock. Using deferred transactions, you can take an initial authorisation (at which point no money has actually been taken) and then, when your product arrives in stock, you can release the funds for the deferred transaction and ship the product out to your customer. It is illegal in some countries to take payment for something which you don\'t have in stock.
+    '#description' => t('Not implemented. Deferred transactions are useful if you want to take orders for items that you cannot always guarantee will be in stock. Using deferred transactions, you can take an initial authorisation (at which point no money has actually been taken) and then, when your product arrives in stock, you can release the funds for the deferred transaction and ship the product out to your customer. It is illegal in some countries to take payment for something which you don\'t have in stock.
 <ul>
   <li>"Defer" will authorise only one unit of currency. This is useful avoid tying up funds in your customer\'s account if all you want to do is get their details into the system.</li>
   <li>"Full" will authorise the full amount of the transaction and freeze the funds in the customer\'s account. A new authorisation takes place when funds are released so be careful not to ship goods before confirming release of funds.</li>
@@ -244,30 +260,33 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
       COMMERCE_PAYMENT_DEFERRED_REUSE => t('Reuse'),
     ),
     '#default_value' => $settings['deferred']['transaction_mode'],
+    '#disabled' => TRUE,
   );
   $form['deferred']['reuse_credit_card_days'] = array(
     '#type' => 'select',
     '#title' => t('Credit card reuse days'),
     '#multiple' => FALSE,
-    '#description' => t('The number of days within which a credit card transaction should reuse the same authorisation code.'),
+    '#description' => t('Not implemented. The number of days within which a credit card transaction should reuse the same authorisation code.'),
     '#options' => drupal_map_assoc(range(1, 14)),
     '#default_value' => $settings['deferred']['reuse_credit_card_days'],
+    '#disabled' => TRUE,
   );
   $form['deferred']['reuse_debit_card_days'] = array(
     '#type' => 'select',
     '#title' => t('Debit card reuse days'),
     '#multiple' => FALSE,
-    '#description' => t('The number of days within which a debit card transaction should reuse the same authorisation code.'),
+    '#description' => t('Not implemented. The number of days within which a debit card transaction should reuse the same authorisation code.'),
     '#options' => drupal_map_assoc(range(1, 14)),
     '#default_value' => $settings['deferred']['reuse_debit_card_days'],
+    '#disabled' => TRUE,
   );
-  */
 
   $form['duplicate_checking'] = array(
     '#type' => 'checkbox',
     '#title' => t('Duplicate transaction checking'),
-    '#description' => t('Duplicate transaction checking will stop the same order ID from the same user being used twice in the same hour. PayPoint.net believe this feature reduces customer bills by approximately 10% and also reduces the administration overhead, it is a "best efforts" feature however and can never be 100%. You must accept that occasionally you will get duplicates. During the testing phase of your integration, it is sometimes useful to not have to bother creating a new order ID for each transaction you send to PayPoint.net. If you wish to send test transactions with the same order ID but want PayPoint.net to not perform duplicate checks i.e., you want PayPoint.net to allow these duplicate transactions into the system without blocking them as duplicates then you must disable this option.'),
+    '#description' => t('Not implemented. Duplicate transaction checking will stop the same order ID from the same user being used twice in the same hour. PayPoint.net believe this feature reduces customer bills by approximately 10% and also reduces the administration overhead, it is a "best efforts" feature however and can never be 100%. You must accept that occasionally you will get duplicates. During the testing phase of your integration, it is sometimes useful to not have to bother creating a new order ID for each transaction you send to PayPoint.net. If you wish to send test transactions with the same order ID but want PayPoint.net to not perform duplicate checks i.e., you want PayPoint.net to allow these duplicate transactions into the system without blocking them as duplicates then you must disable this option.'),
     '#default_value' => $settings['duplicate_checking'],
+    '#disabled' => TRUE,
   );
 
   $form['testing'] = array(
@@ -289,7 +308,7 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#type' => 'select',
     '#title' => t('Default CV2AVS response'),
     '#multiple' => FALSE,
-    '#description' => t("This is the response value for the CV2CVS callback parameter returned by PayPoint.net's server when running in test mode. Especially useful if you have set the CV2AVS options in the merchant admin interface and don’t want to have to remove them for testing specific CV2AVS results."),
+    '#description' => t("Not implemented. This is the response value for the CV2CVS callback parameter returned by PayPoint.net's server when running in test mode. Especially useful if you have set the CV2AVS options in the merchant admin interface and don’t want to have to remove them for testing specific CV2AVS results."),
     '#options' => drupal_map_assoc(array(
       'ALL MATCH',
       'SECURITY CODE MATCH ONLY',
@@ -302,6 +321,7 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
       'SECURITY CODE MATCH / ADDRESS',
     )),
     '#default_value' => $settings['testing']['default_cv2avs'],
+    '#disabled' => TRUE,
   );
 
   return $form;
@@ -540,7 +560,6 @@ function commerce_paypoint_advanced_submit_form_validate($payment_method, $pane_
 /**
  * Payment method callback: checkout form submission.
  */
-/*
 function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
 
   // Display an error and prevent the payment attempt if payment method has not been configured yet.
@@ -604,7 +623,7 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
   // prevent the payment attempt.
   if (!$valid_billing_address) {
     // Display a general error to the customer if we can't find the address.
-    drupal_set_message(t('We cannot process your credit card payment without a valid billing address.'), 'error');
+    drupal_set_message(t('We cannot process your payment without a valid billing address.'), 'error');
 
     // Provide a more descriptive error message in the failed transaction and
     // the watchdog.
@@ -619,112 +638,21 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
     // Save the transaction information.
     commerce_payment_transaction_save($transaction);
 
-    watchdog('PayPoint', 'A PayPoint transaction failed because the order did not have a value for the default billing address field. Your order or checkout configuration may need to be adjusted to support credit card payment via PayPoint.', NULL, WATCHDOG_ERROR);
+    watchdog('PayPoint', 'A PayPoint transaction failed because the order did not have a value for the default billing address field. Your order or checkout configuration may need to be adjusted to support payment via PayPoint.', NULL, WATCHDOG_ERROR);
 
     return FALSE;
   }
-
-  $response = commerce_paypoint_advanced_realtime_transaction_request($order, $payment_method['settings'], $pane_values);
 
   // Every attempted transaction should result in a new transaction entity being
   // created for the order to log either the success or the failure.
-  return commerce_paypoint_advanced_transaction($payment_method, $order, $response);
-}
-*/
-
-/**
- * Makes the call to the XML-RPC endpoint and returns the response array.
- */
-function commerce_paypoint_advanced_realtime_transaction_request($order, $settings, $pane_values) {
-  require_once DRUPAL_ROOT . '/includes/xmlrpc.inc';
-
-  var_dump(__FUNCTION__, $settings); exit;
-  //$url = commerce_paypoint_advanced_server_url($settings); // Get the API endpoint URL for the method's transaction mode.
-  $method = 'SECVPN.validateCardFull';
-  $data = commerce_paypoint_advanced_data_get($order, $settings, $pane_values);
-
-  // Allow modules to alter parameters of the API request.
-  drupal_alter('commerce_paypoint_advanced_realtime_transaction_request', $data, $order);
-
-  $result = commerce_paypoint_advanced_xmlrpc_request($url, $method, $data);
-
-  // If the call failed, log an error.
-  if ($result === FALSE) {
-    watchdog('PayPoint', 'XML-RPC error: @errno. Message: @message.', array('@errno' => xmlrpc_errno(), '@message' => xmlrpc_error_msg()), WATCHDOG_ERROR);
-  }
-
-  // Parse the resultant XML into an array of response parameters.
-  _commerce_paypoint_advanced_response_parse($result, $response);
-  return $response;
-}
-
-/**
- * Parses the response XML into an array of parameters.
- */
-function _commerce_paypoint_advanced_response_parse($result, &$response = array()) {
-  // Strip the XML tags, leaving only the content.
-  $result = strip_tags($result);
-
-  // Cut off the leading "?".
-  $result = substr($result, 1);
-
-  // Decode any HTML entities.
-  $result = html_entity_decode($result);
-
-  // Parse the remaining query string into an array.
-  return parse_str($result, $response);
-}
-
-/**
- * Initiates the XML-RPC request and returns the XML response data.
- *
- * Unfortunately, xmlrpc() returns an unparsable representation of the response
- * data. Therefore, we need to work around the problem by calling
- * drupal_http_request directly and passing the XML data on for parsing.
- *
- * @param $url
- *   The XML-RPC endpoint URL to call.
- * @param $method
- *   The XML-RPC method to invoke.
- * @param $data
- *   An array containing the request paramaters.
- *
- * @return
- *   The result XML data on success, or FALSE on failure.
- */
-function commerce_paypoint_advanced_xmlrpc_request($url, $method, $data) {
-  $xmlrpc_request = xmlrpc_request($method, array_values($data));
-
-  $options['method'] = 'POST';
-  $options['headers']['Content-Type'] = 'text/xml';
-  $options['data'] = $xmlrpc_request->xml;
-
-  $result = drupal_http_request($url, $options);
-
-  if ($result->code != 200) {
-    xmlrpc_error($result->code, $result->error);
-    return FALSE;
-  }
-
-  $message = xmlrpc_message($result->data);
-
-  if (!xmlrpc_message_parse($message)) {
-    xmlrpc_error(-32700, t('Parse error. Not well formed.'));
-    return FALSE;
-  }
-
-  if ($message->messagetype == 'fault') {
-    xmlrpc_error($message->fault_code, $message->fault_string);
-    return FALSE;
-  }
-
-  // We now know that the message is well-formed and a non-fault result.
-  return $result->data;
+  //return commerce_paypoint_advanced_transaction($payment_method, $order, $response);
+  return TRUE;
 }
 
 /**
  * Processes the transaction.
  */
+/*
 function commerce_paypoint_advanced_transaction($payment_method, $order, $response) {
   // Sanitize the incoming data.
   $response = array_map('check_plain', $response);
@@ -818,6 +746,7 @@ function commerce_paypoint_advanced_transaction($payment_method, $order, $respon
     return FALSE;
   }
 }
+*/
 
 /**
  * Payment method callback: validate an PayCash based on receiver e-mail address,
@@ -1120,4 +1049,16 @@ function commerce_paypoint_advanced_currencies() {
  */
 function commerce_paypoint_advanced_card_schemes() {
   return drupal_map_assoc(array('VISA', 'MASTERCARD', 'AMEX', 'JCB', 'LASER', 'DISCOVER', 'DINERS'));
+}
+
+/**
+ * Topic index callback.
+ */
+function commerce_paypoint_advanced_index_page() {
+  $output = theme('advanced_help_topic', array(
+    'module' => 'commerce_paypoint_advanced',
+    'topic' => 'commerce-paypoint-advanced',
+  ));
+  $output .= '&nbsp;' . t("Click the help icon to view docs about the PayPoint.net's Advanced Payments.");
+  return $output;
 }
