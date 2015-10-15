@@ -130,7 +130,8 @@ class PPOAdvancedPayment {
    * Return last response status message.
    */
   function getLastStatus() {
-    return !empty($this->response->status) ? json_decode($this->response->data)->status : "UNKNOWN";
+    $data = $this->getLastData();
+    return (!empty($data->status) ? $data->status : "UNKNOWN");
   }
 
   /*

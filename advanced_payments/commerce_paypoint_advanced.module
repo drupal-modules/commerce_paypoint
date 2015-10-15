@@ -80,7 +80,7 @@ function commerce_paypoint_advanced_default_settings() {
 
   return array(
     'integration_type' => array(
-      'use_iframe' => TRUE,
+      'use_iframe' => FALSE,
     ),
     'merchant' => array(
       'username' => '',
@@ -99,7 +99,6 @@ function commerce_paypoint_advanced_default_settings() {
     ),
     'testing' => array(
       'test_status' => COMMERCE_PAYPOINT_TEST_MODE_TEST,
-      'default_cv2avs' => 'ALL MATCH',
     ),
     'code' => TRUE,
     'card_types' => drupal_map_assoc(array('visa', 'mastercard', 'amex', 'discover')),
@@ -137,8 +136,9 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
   $form['integration_type']['use_iframe'] = array(
     '#type'          => 'checkbox',
     '#title'         => t('Display payment form in an iFrame'),
-    '#description'   => t('Use an iFrame to make the payment page appear to be an integrated part of your site.'),
-    '#default_value' => $settings['integration_type']['use_iframe'] ?: TRUE,
+    '#description'   => t('Disabled, due partial implementation.') . '<br>' .  t('Use an iFrame to make the payment page appear to be an integrated part of your site.'),
+    '#default_value' => $settings['integration_type']['use_iframe'] ?: FALSE,
+    '#disabled'      => TRUE, // Needs some testing and fixing.
   );
 
   /*
@@ -241,6 +241,7 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#default_value' => $settings['connectivity']['debug'] ?: variable_get('commerce_paypoint_debug', FALSE),
   );
 
+  /* @todo: ?
   $form['deferred'] = array(
     '#type' => 'fieldset',
     '#title' => t('Deferred transactions'),
@@ -280,11 +281,12 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#default_value' => $settings['deferred']['reuse_debit_card_days'],
     '#disabled' => TRUE,
   );
+  */
 
   $form['duplicate_checking'] = array(
     '#type' => 'checkbox',
     '#title' => t('Duplicate transaction checking'),
-    '#description' => t('Not implemented. Duplicate transaction checking will stop the same order ID from the same user being used twice in the same hour. PayPoint.net believe this feature reduces customer bills by approximately 10% and also reduces the administration overhead, it is a "best efforts" feature however and can never be 100%. You must accept that occasionally you will get duplicates. During the testing phase of your integration, it is sometimes useful to not have to bother creating a new order ID for each transaction you send to PayPoint.net. If you wish to send test transactions with the same order ID but want PayPoint.net to not perform duplicate checks i.e., you want PayPoint.net to allow these duplicate transactions into the system without blocking them as duplicates then you must disable this option.'),
+    '#description' => t('Not implemented.') . '<br>' . t('Duplicate transaction checking will stop the same order ID from the same user being used twice in the same hour. PayPoint.net believe this feature reduces customer bills by approximately 10% and also reduces the administration overhead, it is a "best efforts" feature however and can never be 100%. You must accept that occasionally you will get duplicates. During the testing phase of your integration, it is sometimes useful to not have to bother creating a new order ID for each transaction you send to PayPoint.net. If you wish to send test transactions with the same order ID but want PayPoint.net to not perform duplicate checks i.e., you want PayPoint.net to allow these duplicate transactions into the system without blocking them as duplicates then you must disable this option.'),
     '#default_value' => $settings['duplicate_checking'],
     '#disabled' => TRUE,
   );
@@ -293,6 +295,7 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#type' => 'fieldset',
     '#title' => t('Testing settings'),
   );
+
   $form['testing']['test_status'] = array(
     '#type' => 'select',
     '#title' => t('Test status'),
@@ -303,25 +306,6 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
       COMMERCE_PAYPOINT_TEST_MODE_LIVE => t('Live'),
     ),
     '#default_value' => $settings['testing']['test_status'],
-  );
-  $form['testing']['default_cv2avs'] = array(
-    '#type' => 'select',
-    '#title' => t('Default CV2AVS response'),
-    '#multiple' => FALSE,
-    '#description' => t("Not implemented. This is the response value for the CV2CVS callback parameter returned by PayPoint.net's server when running in test mode. Especially useful if you have set the CV2AVS options in the merchant admin interface and don’t want to have to remove them for testing specific CV2AVS results."),
-    '#options' => drupal_map_assoc(array(
-      'ALL MATCH',
-      'SECURITY CODE MATCH ONLY',
-      'ADDRESS MATCH ONLY',
-      'NO DATA MATCHES',
-      'DATA NOT CHECKED',
-      'PARTIAL ADDRESS MATCH / POSTCODE',
-      'PARTIAL ADDRESS MATCH / ADDRESS',
-      'SECURITY CODE MATCH / POSTCODE',
-      'SECURITY CODE MATCH / ADDRESS',
-    )),
-    '#default_value' => $settings['testing']['default_cv2avs'],
-    '#disabled' => TRUE,
   );
 
   return $form;
@@ -359,7 +343,6 @@ function commerce_paypoint_advanced_data_get($order, $settings, $pane_values) {
     // parameter when in live mode.
     $options['test_status'] = $settings['testing']['test_status'];
     // Simulate the CV2AVS response.
-    $options['default_cv2avs'] = $settings['testing']['default_cv2avs'];
   }
   $options_string = commerce_paypoint_advanced_key_value_string($options);
 
@@ -454,50 +437,17 @@ function commerce_paypoint_advanced_key_value_string($data) {
 /**
  * Payment method callback: Displays the payment form.
  */
-/*
 function commerce_paypoint_advanced_submit_form($payment_method, $pane_values, $checkout_pane, $order) {
-  module_load_include('inc', 'commerce_payment', 'includes/commerce_payment.credit_card');
-
-  // Merge default settings into the stored settings array.
-  // This is only relevant before the form is saved for the first time.
-  $payment_method['settings'] += commerce_paypoint_advanced_default_settings();
-
-  // Prepare the fields to include on the credit card form.
-  $fields = array(
-    'owner' => '',
-    'code' => '',
-  );
-
-  // Include the card security code field if specified.
-  if ($payment_method['settings']['code']) {
-    $fields['code'] = '';
-  }
-
-  // Add the credit card types array if necessary.
-  $card_types = (array)array_keys(commerce_payment_credit_card_types());
-  if (!empty($card_types)) {
-    $fields['type'] = $card_types;
-  }
-
-  // Add the start date and issue number if processing a Maestro or Solo card.
-  if (in_array('maestro', $card_types) || in_array('solo', $card_types)) {
-    $fields += array(
-      'start_date' => '',
-      'issue' => '',
-    );
-  }
-
-  // Default to a known test credit card number, see: Gateway_Freedom.pdf (Test Card Numbers).
-  return commerce_payment_credit_card_form($fields, array('number' => '4111111111111111'));
+   // @todo: Anything here?
 }
-*/
 
 /**
  * Payment method callback: redirect form, a wrapper around the module's general
  *   use function for building a form.
  */
-/*
 function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $payment_method) {
+  var_dump(__FUNCTION__, $payment_method['settings']); exit;
+
   // Return an error if the enabling action's settings haven't been configured.
   if (empty($payment_method['settings']['business'])) {
     drupal_set_message(t('PayPoint is not configured for use. No PayPoint e-mail address has been specified.'), 'error');
@@ -520,42 +470,45 @@ function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, 
 
   return commerce_paypoint_advanced_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 }
-*/
 
 /**
  * Payment method callback: redirect form return validation.
  */
-/*
 function _commerce_paypoint_advanced_redirect_form_validate($order, $payment_method) {
-  if (!empty($payment_method['settings']['paycash_logging']) &&
-    $payment_method['settings']['paycash_logging'] == 'full_ipn') {
-    watchdog('commerce_paypoint_advanced', 'Customer returned from PayPoint with the following POST data:!paycash_data', array('!paycash_data' => '<pre>' . check_plain(print_r($_POST, TRUE)) . '</pre>'), WATCHDOG_NOTICE);
-  }
 
+  var_dump(__FUNCTION__, $payment_method['settings']); exit;
   // This may be an unnecessary step, but if for some reason the user does end
   // up returning at the success URL with a Failed payment, go back.
   if (!empty($_POST['payment_status']) && $_POST['payment_status'] == 'Failed') {
     return FALSE;
   }
 }
-*/
 
 /**
  * Payment method callback: checkout form validation.
  */
-/*
 function commerce_paypoint_advanced_submit_form_validate($payment_method, $pane_form, $pane_values, $order, $form_parents = array()) {
-  module_load_include('inc', 'commerce_payment', 'includes/commerce_payment.credit_card');
 
-  $settings = array(
-    'form_parents' => array_merge($form_parents, array('credit_card')),
-  );
-
-  if (!commerce_payment_credit_card_validate($pane_values['credit_card'], $settings)) {
+  if (!$payment_method['settings']['merchant']['username'] || !$payment_method['settings']['merchant']['password']) {
+    drupal_set_message('PayPoint is not configured for use. Please contact an administrator to resolve this issue.', 'error');
+    watchdog('PayPoint', 'PayPoint credentials needs to be configured.', array(), WATCHDOG_ERROR);
     return FALSE;
   }
+
+  // Testing connectivity to PayPoint end point.
+  module_load_include('inc', 'commerce_paypoint_advanced', 'commerce_paypoint_advanced.class');
+  $hosted = $settings['connectivity']['request_type'] == 'hosted';
+  $ppo = new PPOAdvancedPayment($url, $settings['merchant']['username'], $settings['merchant']['password'], $hosted);
+  try {
+    $response = $ppo->sendPing();
+  }
+  catch (Exception $e) {
+    watchdog('PayPoint', 'PayPoint payment service is not available at the moment. If the problem persists, please contact an administrator to resolve this issue.', array(), WATCHDOG_ERROR);
+    watchdog_exception('commerce_paypoint_advanced', $e);
+    return FALSE;
+  }
+
 }
-*/
 
 /**
  * Payment method callback: checkout form submission.
@@ -572,15 +525,17 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
   $ip_address = ip_address();
 
   // Go ahead and convert localhost from IPv6 to IPv4.
-  if ($ip_address == '::1') {
-    $ip_address = '127.0.0.1';
-    watchdog('PayPoint', 'PayPoint must be able to retrieve an IPv4 IP address from the ip_address() function when not testing payments from localhost. While testing from localhost, your IPv6 address ::1 was automatically converted to 127.0.0.1.', array(), WATCHDOG_WARNING);
-  }
+  if ($payment_method['settings']['testing']['test_status'] != COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
+    if ($ip_address == '::1') {
+      $ip_address = '127.0.0.1';
+      watchdog('PayPoint', 'PayPoint must be able to retrieve an IPv4 IP address from the ip_address() function when not testing payments from localhost. While testing from localhost, your IPv6 address ::1 was automatically converted to 127.0.0.1.', array(), WATCHDOG_WARNING);
+    }
 
-  if (!filter_var($ip_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-    drupal_set_message(t('This payment method is not supported by the current web server configuration.'), 'error');
-    watchdog('PayPoint', 'PayPoint must be able to retrieve an IPv4 IP address from the ip_address() function when not testing payments from localhost.', array(), WATCHDOG_ERROR);
-    return FALSE;
+    if (!filter_var($ip_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+      drupal_set_message(t('This payment method is not supported by the current web server configuration.'), 'error');
+      watchdog('PayPoint', 'PayPoint must be able to retrieve an IPv4 IP address from the ip_address() function when not testing payments from localhost.', array(), WATCHDOG_ERROR);
+      return FALSE;
+    }
   }
 
   // Determine the currency code to use to actually process the transaction,

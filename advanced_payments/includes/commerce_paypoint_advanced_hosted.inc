@@ -52,7 +52,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
 
   // Initialize and send the PayPoint request.
   $instId = 5301067; // @fixme
-  $returnUrl = 'checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'];
+  $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
   $notifyUrl = url('commerce_paypoint_advanced/todo', array('absolute' => TRUE));
   $email = user_load($order->uid)->mail;
   $address = array(
@@ -88,8 +88,10 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $status = $ppo->getLastStatus();
   $code = $ppo->getLastCode();
   $data = $ppo->getLastData();
+
   if ($settings['connectivity']['debug'] || variable_get('commerce_paypoint_debug', FALSE)) {
-    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => json_encode($ppo->getLastResponse())), WATCHDOG_DEBUG);
+    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => json_encode($response)), WATCHDOG_DEBUG);
+    function_exists('dpm') && user_access('administer site configuration') && dpm($response);
   }
 
   // Create a new payment transaction and setup the amount.
@@ -99,11 +101,11 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
   $transaction->instance_id = $instId;
   $transaction->remote_id = $data->sessionId;
-  //$transaction->payload = $response;
+  $transaction->payload[REQUEST_TIME] = $response;
   //$transaction->payload['VendorTxCode'] = $data['VendorTxCode'];
 
   // Add the user id to the transaction.
-  //$transaction->payload['merchantCustomerId'] = $order->uid;
+  $transaction->payload['merchantCustomerId'] = $order->uid;
 
   // Determine the next action depending on the Status Code returned.
   if (empty($code)) {
@@ -153,6 +155,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       drupal_goto('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key']);
       break;
 
+    case 'UNKNOWN':
     default:
       $transaction->remote_status = $status;
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
