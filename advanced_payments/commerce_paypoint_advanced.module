@@ -32,7 +32,7 @@ function commerce_paypoint_advanced_menu() {
     'page callback' => 'commerce_paypoint_advanced_waiting_page',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
-    'file' => 'includes/commerce_paypoint_advanced_server.inc',
+    'file' => 'includes/commerce_paypoint_advanced_hosted.inc',
   );
 
   // View help topic index.
@@ -64,7 +64,7 @@ function commerce_paypoint_advanced_commerce_payment_method_info() {
     'terminal' => FALSE,
     'callbacks' => array(),
     'offsite_autoredirect' => FALSE,
-    'file' => 'includes/commerce_paypoint_advanced_server.inc',
+    'file' => 'includes/commerce_paypoint_advanced_hosted.inc',
   );
 
   return $payment_methods;

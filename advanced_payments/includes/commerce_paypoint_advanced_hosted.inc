@@ -42,11 +42,8 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
     $delivery_profile = commerce_customer_profile_load($order->commerce_customer_shipping[LANGUAGE_NONE][0]['profile_id']);
     $delivery_address = $delivery_profile->commerce_customer_address[LANGUAGE_NONE][0];
   }
-//var_dump($profile, $billing_address); exit;
 
   $settings = $payment_method['settings'];
-  //var_dump(__FUNCTION__); exit;
-  // $data = _commerce_paypoint_advanced_encrypted_order($settings, $order, $total, $billing_address, $delivery_address, SAGEPAY_SERVER);
 
   module_load_include('inc', 'commerce_paypoint_advanced', 'commerce_paypoint_advanced.class');
   $hosted = $settings['connectivity']['request_type'] == 'hosted';
