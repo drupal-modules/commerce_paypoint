@@ -78,7 +78,6 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $response = array();
   try {
     // Call PayPoint to get payment form that can then be included in an iFrame.
-    //var_dump($order); exit;
     $response = $ppo->sendProcessPayment();
   }
   catch (Exception $e) {

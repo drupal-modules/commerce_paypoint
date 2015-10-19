@@ -15,13 +15,6 @@ define('PAYPOINT_ADV_LIVE_API_ENDPOINT', 'https://api.paypoint.net');
 define('PAYPOINT_ADV_DEBUG', FALSE); // Override in the settings.
 
 /**
- * Implements hook_form_alter().
- */
-function commerce_paypoint_advanced_form_alter(&$form, &$form_state, $form_id) {
-  // var_dump($form_id);
-}
-
-/**
  * Implements hook_menu().
  */
 function commerce_paypoint_advanced_menu() {
@@ -446,7 +439,6 @@ function commerce_paypoint_advanced_submit_form($payment_method, $pane_values, $
  *   use function for building a form.
  */
 function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $payment_method) {
-  var_dump(__FUNCTION__, $payment_method['settings']); exit;
 
   // Return an error if the enabling action's settings haven't been configured.
   if (empty($payment_method['settings']['business'])) {
@@ -476,7 +468,6 @@ function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, 
  */
 function _commerce_paypoint_advanced_redirect_form_validate($order, $payment_method) {
 
-  var_dump(__FUNCTION__, $payment_method['settings']); exit;
   // This may be an unnecessary step, but if for some reason the user does end
   // up returning at the success URL with a Failed payment, go back.
   if (!empty($_POST['payment_status']) && $_POST['payment_status'] == 'Failed') {
