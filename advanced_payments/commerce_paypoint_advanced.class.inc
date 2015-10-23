@@ -91,13 +91,17 @@ class PPOAdvancedPayment {
     );
 
     $this->request = is_array($data) ? json_encode($data) : $data;
-    $response = drupal_http_request($this->url . $uri, array(
-      'headers' => $headers,
-      'method' => $method,
-      'data' => $this->request,
-    ));
+    if (function_exists('drupal_http_request')) {
+      $response = drupal_http_request($this->url . $uri, array(
+        'headers' => $headers,
+        'method' => $method,
+        'data' => $this->request,
+      ));
+    } else {
+      // @todo: Use curl for non-Drupal usage.
+    }
     if ($response->code == 201) {
-      unset($response->error); # Workaround for Drupal bug: https://www.drupal.org/node/2350033
+      unset($response->error); # @fixme: Workaround for Drupal bug: https://www.drupal.org/node/2350033, fixed in: D7.40
     }
     $this->response = $response;
     if (!empty($response->error)) {
