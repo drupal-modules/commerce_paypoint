@@ -120,10 +120,18 @@ class PPOAdvancedPayment {
   }
 
   /*
-   * Return last response code.
+   * Return last response numeric code.
    */
   function getLastCode() {
     return $this->response ? $this->response->code : FALSE;
+  }
+
+  /*
+   * Return last response reason code.
+   */
+  function getLastReasonCode() {
+    $data = $this->getLastData();
+    return (!empty($data->reasonCode) ? $data->reasonCode : "UNKNOWN");
   }
 
   /*
@@ -208,14 +216,6 @@ class PPOAdvancedPayment {
   }
 
   /*
-   * Set new customer for PayPoint hosted session.
-   *
-   */
-  function setCustomerNew() {
-    $this->customer['create'] = TRUE;
-  }
-
-  /*
    * Set platform customer identity for PayPoint hosted session.
    *
    * @param
@@ -223,6 +223,7 @@ class PPOAdvancedPayment {
    *    Our ID for your customer.
    */
   function setCustomerPlatformId($id) {
+    $this->customer['registered'] = TRUE; // Set new customer for PayPoint hosted session.
     $this->customer['identity']['platformCustomerId'] = $id;
   }
 
@@ -234,6 +235,7 @@ class PPOAdvancedPayment {
    *    Your ID for the customer.
    */
   function setCustomerMerchantId($id) {
+    $this->customer['registered'] = TRUE; // Set new customer for PayPoint hosted session.
     $this->customer['identity']['merchantCustomerId'] = $id;
   }
 
@@ -453,6 +455,73 @@ class PPOAdvancedPayment {
    */
   function setFeatures($paymentMethodRegistration) {
     $this->features['paymentMethodRegistration'] = $paymentMethodRegistration;
+  }
+
+  /*
+   * Translate hosted response code into plain message.
+   * Below is a list of the codes you could receive in response to your hosted request.
+   *
+   *  @param
+   *    $reasonCode
+   *      The exception/validation code you could receive in response to your hosted request.
+   *  @return
+   *      Response message.
+   */
+  function getMessageFromResponse($reasonCode = NULL) {
+    if (empty($reasonCode)) {
+      $reasonCode = $this->getLastReasonCode();
+    }
+
+    switch ($reasonCode) {
+        // Hosted response codes.
+        case 'exception.authenticationFailure.noAuth': return "Authentication Failed";
+        case 'exception.authenticationFailure.noPriv': return "Authorisation Failed";
+        case 'exception.cache.invalidResourcePath': return "Invalid Resource Path";
+        case 'exception.config.noCustomerCardDomain': return "No customer-card domain configured";
+        case 'exception.config.noReturnUrl': return "No return url provided";
+        case 'exception.error.amo': return "CSC Address match only";
+        case 'exception.error.dcr': return "Daily card registrations";
+        case 'exception.error.mcr': return "Max card register";
+        case 'exception.error.ndm': return "CSC No data match";
+        case 'exception.error.nvd': return "Net balance";
+        case 'exception.initialiseHosted.noCustomer': return "Customer not found";
+        case 'exception.installation.lookup': return "Invalid installation";
+        case 'exception.landing.invalidFlow': return "Invalid flow provided";
+        case 'exception.manageCards.noRegisteredCards': return "No cards registered";
+        case 'exception.manageCards.noRegisteredCards.message': return "Currently you have no registered cards which are available for manage cards.";
+        case 'exception.manageCards.noValidCards': return "No cards active";
+        case 'exception.payout.noValidCards': return "No valid cards for withdrawal";
+        case 'exception.payout.noValidCards.message': return "Currently you have no registered cards which are available for withdrawal.";
+        case 'exception.permission.denied': return "Permission Denied";
+        case 'exception.permission.denied.message': return "You do not have permission to perform that action";
+        case 'exception.resumeFailure.invalidSession': return "Session invalid for resumption";
+        case 'exception.resumeFailure.noSession': return "No session found";
+        case 'exception.skin.installation': return "Skin specified in installation not valid";
+        case 'exception.skin.lookup': return "No skin configured";
+        case 'exception.skin.merchant.lookup': return "No merchant configured";
+        case 'exception.skin.request': return "Skin specified in request not valid";
+        case 'exception.config.url.not.valid': return "Callback URL is not valid";
+        case 'exception.request.contentType': return "Content type {0} not supported. Content type application/json required.";
+        case 'exception.invalid.email': return "Email address provided is not valid";
+        // Hosted validation response codes
+        case 'validation.transaction.pan': return "Must be 3 or 4 digits";
+        case 'validation.transaction.issueNumber': return "Issue number must be between 0 and 9";
+        case 'validation.transaction.card.selection': return "Invalid card selection";
+        case 'validation.transaction.card.billingAddress': return "Max number of permitted characters is 255";
+        case 'validation.transaction.amount.range': return "Value must be in range";
+        case 'validation.transaction.amount.other': return "The amount you entered must be greater than zero";
+        case 'validation.transaction.amount.invalidnumber': return "The amount you entered must be numeric";
+        case 'validation.transaction.amount.invalidcsc': return "When a pan is invalid (null or empty, invalid format or length)";
+        case 'validation.transaction.amount.csc': return "Please provide the CSC number of your credit/debit card.";
+        case 'validation.transaction.amount': return "You must enter an amount";
+        case 'Range.cardRegistration.cardNickname': return "Invalid nickname length. Max number of permitted characters is 20.";
+        case 'NotEmpty.cardRegistration.cardNickname': return "Please enter a nickname for your card. This will help you quickly identify your card.";
+        case 'NotEmpty.cardRegistration.cardHolder': return "Cardholder name cannot be blank";
+        case 'NotBlank.cardRegistration.cardNickname': return "Please ensure nickname consists of more than just spaces.";
+        case 'label.error.maxCardsLimitReached': return "You've reached the maximum number of cards allowed.";
+        case 'label.error.cannotDeleteCard': return "You don't have permission to delete cards.";
+        case 'Invalid.cardRegistration.cardNickname': return "Invalid characters. Only latin alphanumeric characters, spaces and . - '' permitted.";
+    }
   }
 
 }
