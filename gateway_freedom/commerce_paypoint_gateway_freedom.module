@@ -384,7 +384,7 @@ function commerce_paypoint_gateway_freedom_submit_form_submit($payment_method, $
   }
 
   // Ensure we can determine a valid IPv4 IP address.
-  if ($payment_method['settings']['testing']['test_status'] != COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
+  if ($payment_method['settings']['testing']['test_status'] == COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
     $ip_address = ip_address();
 
     // Go ahead and convert localhost from IPv6 to IPv4.
