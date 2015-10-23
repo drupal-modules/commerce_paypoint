@@ -64,6 +64,19 @@ function commerce_paypoint_advanced_commerce_payment_method_info() {
 }
 
 /**
+ * Implements hook_page_build().
+ */
+function commerce_paypoint_advanced_page_build($page) {
+  $url = explode('/', current_path());
+  if (count($url) > 2) {
+    if ($url[0] == 'checkout') {
+      drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') .
+      '/js/commerce_paypoint_hosted_iframe.js', array('type' => 'file', 'scope' => 'header', 'weight' => -100));
+    }
+  }
+}
+
+/**
  * Returns the default settings for the payment method settings form.
  *
  * @see commerce_paypoint_advanced_settings_form()
@@ -131,7 +144,6 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
     '#title'         => t('Display payment form in an iFrame'),
     '#description'   => t('Disabled, due partial implementation.') . '<br>' .  t('Use an iFrame to make the payment page appear to be an integrated part of your site.'),
     '#default_value' => $settings['integration_type']['use_iframe'] ?: FALSE,
-    '#disabled'      => TRUE, // Needs some testing and fixing.
   );
 
   /*
@@ -516,7 +528,7 @@ function commerce_paypoint_advanced_submit_form_submit($payment_method, $pane_fo
   $ip_address = ip_address();
 
   // Go ahead and convert localhost from IPv6 to IPv4.
-  if ($payment_method['settings']['testing']['test_status'] != COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
+  if ($payment_method['settings']['testing']['test_status'] == COMMERCE_PAYPOINT_TEST_MODE_LIVE) {
     if ($ip_address == '::1') {
       $ip_address = '127.0.0.1';
       watchdog('PayPoint', 'PayPoint must be able to retrieve an IPv4 IP address from the ip_address() function when not testing payments from localhost. While testing from localhost, your IPv6 address ::1 was automatically converted to 127.0.0.1.', array(), WATCHDOG_WARNING);
