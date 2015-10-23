@@ -70,11 +70,10 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $ppo = new PPOAdvancedPayment($url, $auth['username'], $auth['password'], $instId, $hosted);
   $ppo->setSessionReturnUrl($returnUrl);
   $ppo->setSessionNotificationUrl($notifyUrl);
+  $ppo->setCustomerMerchantId($order->uid);
   $ppo->setCustomerDetails($billing_address['name_line'], $address, $telephone, $email, $ip_address);
-  $ppo->setTransactionMerchantReference('your_reference_here'); // @fixme
   $ppo->setTransactionMoneyFixed($total['amount'], $total['currency_code']);
-  $ppo->setCustomerNew();
-  $ppo->setCustomerMerchantId('1111111111112'); // @fixme
+  // $ppo->setTransactionMerchantReference('your_reference_here'); // @fixme
   $response = array();
   try {
     // Call PayPoint to get payment form that can then be included in an iFrame.
@@ -89,7 +88,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $data = $ppo->getLastData();
 
   if ($settings['connectivity']['debug'] || variable_get('commerce_paypoint_debug', FALSE)) {
-    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => json_encode($response)), WATCHDOG_DEBUG);
+    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => print_r($response, TRUE)), WATCHDOG_DEBUG);
     function_exists('dpm') && user_access('administer site configuration') && dpm($response);
   }
 
@@ -99,7 +98,6 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $transaction->currency_code = $total['currency_code'];
   $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
   $transaction->instance_id = $instId;
-  $transaction->remote_id = $data->sessionId;
   $transaction->payload[REQUEST_TIME] = $response;
   //$transaction->payload['VendorTxCode'] = $data['VendorTxCode'];
 
@@ -120,6 +118,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   switch ($status) {
     case 'SUCCESS':
       $transaction->remote_status = $status;
+      $transaction->remote_id = $data->sessionId;
       commerce_payment_transaction_save($transaction);
 
       $iframe_enabled = (bool)$settings['integration_type']['use_iframe'];
@@ -127,7 +126,6 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       if ($iframe_enabled) {
         // Build the iFrame for the next step.
         $form['#action'] = $data->redirectUrl;
-        $form['#method'] = 'GET';
         $form['#attributes']['target'] = 'iframe_paypoint';
 
         $form['submit'] = array(
@@ -147,6 +145,10 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       exit;
 
     case 'FAILED':
+      $reasonCode = $ppo->getLastReasonCode();
+      $reasonMsg = $ppo->getMessageFromResponse($reasonCode);
+      watchdog('commerce_paypoint_advanced', 'PayPoint transaction failed:\n<br>Response Code: %code\n<br>Message: %msg',
+          array('%code' => $reasonCode, '%msg' => $reasonMsg), WATCHDOG_DEBUG);
       $transaction->remote_status = $status;
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
       $transaction->message = 'FAIL Response from PayPoint';
