@@ -18,7 +18,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   }
 
   // Add Javascript to allow iFrame to work.
-  //drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') . '/js/commerce_paypoint_advanced.js');
+  drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') . '/js/commerce_paypoint_hosted.js');
 
   // Wrap the order for easier access to data.
   $wrapper = entity_metadata_wrapper('commerce_order', $order);
