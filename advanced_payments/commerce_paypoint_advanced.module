@@ -20,6 +20,15 @@ define('PAYPOINT_ADV_DEBUG', FALSE); // Override in the settings.
 function commerce_paypoint_advanced_menu() {
   $items = array();
 
+  // Define a path to receive VPS callback (Server only).
+  $items['commerce_paypoint/rest-xml-callback/%/%'] = array(
+    'page callback' => 'commerce_paypoint_advanced_hosted_handle_callback',
+    'page arguments' => array(2, 3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/commerce_paypoint_advanced_hosted.inc',
+  );
+
   // Define a path for a waiting page displayed whilst the iframe is loading.
   $items['commerce_paypoint/paypoint_waiting_page'] = array(
     'page callback' => 'commerce_paypoint_advanced_waiting_page',
@@ -91,6 +100,7 @@ function commerce_paypoint_advanced_default_settings() {
     'merchant' => array(
       'username' => '',
       'password' => '',
+      'instId'   => '',
     ),
     'connectivity' => array(
       'server' => 'sandbox',
@@ -203,15 +213,28 @@ function commerce_paypoint_advanced_settings_form($settings = NULL) {
   $form['merchant']['username'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),
-    '#description' => t('Enter your API username.'),
+    '#description' => t('Enter your PayPoint API account username.'),
+    '#maxlength' => 50,
     '#default_value' => $settings['merchant']['username'],
   );
   $form['merchant']['password'] = array(
     '#type' => 'textfield',
     '#title' => t('Password'),
-    '#description' => t('Enter the API password.'),
-    '#maxlength' => 30,
+    '#description' => t('Enter your PayPoint API account password.'),
+    '#maxlength' => 50,
     '#default_value' => $settings['merchant']['password'],
+  );
+  /*
+   * In order to handle your request securely and reliably, you will need to submit credentials specific to your organisation with each request.
+   * You will also be issued with at least one installation identifier.
+   * If your company has multiple websites you may have a separate installation for each.
+   */
+  $form['merchant']['instId'] = array(
+    '#type' => 'textfield',
+    '#title' => t('The installation id'),
+    '#description' => t('Enter your PayPoint API account installation identifier.'),
+    '#maxlength' => 50,
+    '#default_value' => $settings['merchant']['instId'],
   );
 
   $form['connectivity'] = array(
@@ -492,7 +515,8 @@ function _commerce_paypoint_advanced_redirect_form_validate($order, $payment_met
  */
 function commerce_paypoint_advanced_submit_form_validate($payment_method, $pane_form, $pane_values, $order, $form_parents = array()) {
 
-  if (!$payment_method['settings']['merchant']['username'] || !$payment_method['settings']['merchant']['password']) {
+  $settings = $payment_method['settings'];
+  if (!$settings['merchant']['username'] || !$settings['merchant']['password']) {
     drupal_set_message('PayPoint is not configured for use. Please contact an administrator to resolve this issue.', 'error');
     watchdog('PayPoint', 'PayPoint credentials needs to be configured.', array(), WATCHDOG_ERROR);
     return FALSE;
@@ -501,6 +525,7 @@ function commerce_paypoint_advanced_submit_form_validate($payment_method, $pane_
   // Testing connectivity to PayPoint end point.
   module_load_include('inc', 'commerce_paypoint_advanced', 'commerce_paypoint_advanced.class');
   $hosted = $settings['connectivity']['request_type'] == 'hosted';
+  $url = commerce_paypoint_advanced_server_url($settings['testing']['test_status']);
   $ppo = new PPOAdvancedPayment($url, $settings['merchant']['username'], $settings['merchant']['password'], $hosted);
   try {
     $response = $ppo->sendPing();

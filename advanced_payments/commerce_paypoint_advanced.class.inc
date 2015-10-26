@@ -22,6 +22,20 @@ class PPOAdvancedPayment {
   private $features     = array();
   // private $financialServices = array(); // @todo: Mandatory for Fin-Services
 
+  /*
+   * Constructor to initialize PayPoint's class instance.
+   *
+   * @param
+   *  $url string mandatory
+   *  $username string mandatory
+   *    The username for the PayPoint transaction.
+   *  $password string mandatory
+   *    The password for the PayPoint transaction.
+   *  $instId string mandatory
+   *    The installation identifier which you will need to submit with each request.
+   *  $hosted string
+   *    When TRUE, your access to PayPoint services is via Hosted Cashier solution, otherwise it's via an API or using an SDK.
+   */
   function __construct($url, $username, $password, $instId, $hosted = TRUE) {
     $this->url = $url ?: PAYPOINT_ADV_MITE_HOSTED_ENDPOINT;
     $this->hosted = $hosted ?: TRUE;
@@ -63,7 +77,7 @@ class PPOAdvancedPayment {
     !empty($this->features)       && $request['features']     = $this->features;
 
     return $this->sendRawRequest(
-      $this->hosted ? "/hosted/rest/sessions/$this->instId/payments" : "/acceptor/rest/transactions/$this->instId/payment",
+      $this->hosted ? "/hosted/rest/sessions/{$this->instId}/payments" : "/acceptor/rest/transactions/{$this->instId}/payment",
       $request
     );
   }

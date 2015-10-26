@@ -51,11 +51,15 @@ function commerce_paypoint_advanced_requirements($phase) {
       $errors = array();
 
       if (empty($merchant['username'])) {
-        $errors[] = t('Username missing.');
+        $errors[] = t('Username is missing.');
       }
 
       if (empty($merchant['password'])) {
-        $errors[] = t('Password missing.');
+        $errors[] = t('Password is missing.');
+      }
+
+      if (empty($merchant['instId'])) {
+        $errors[] = t('Installation identifier is missing.');
       }
 
       if (!empty($errors)) {
