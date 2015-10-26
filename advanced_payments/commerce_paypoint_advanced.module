@@ -21,8 +21,9 @@ function commerce_paypoint_advanced_menu() {
   $items = array();
 
   // Define a path to receive VPS callback (Server only).
-  $items['commerce_paypoint/rest-xml-callback/%/%'] = array(
-    'page callback' => 'commerce_paypoint_advanced_hosted_handle_callback',
+  // @fixme
+  $items['commerce_paypoint/notify-callback/%/%'] = array(
+    'page callback' => 'commerce_paypoint_advanced_notify_callback',
     'page arguments' => array(2, 3),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,

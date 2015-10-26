@@ -51,7 +51,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
 
   // Initialize and send the PayPoint request.
   $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
-  $notifyUrl = url('commerce_paypoint_advanced/todo', array('absolute' => TRUE));
+  $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
   $abortUrl  = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
   $email = user_load($order->uid)->mail;
   $address = array(
@@ -181,15 +181,14 @@ function commerce_paypoint_advanced_waiting_page() {
 }
 
 /**
- * Process the callback that is sent by PayPoint Hosted via REST_XML.
+ * Callback to receive and process the notifications (REST_XML) of completed Cash Issue and Cash Payments to.
  *
  * @param string $order_id
  *    The order id.
  * @param string $key
  *    The security key.
  */
-function commerce_paypoint_advanced_hosted_handle_callback($order_id, $key, $debug_vps = array()) {
-
+function commerce_paypoint_advanced_notify_callback($order_id, $key, $debug_vps = array()) {
 
   $notification = array();
 
