@@ -16,86 +16,18 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
     return array();
   }
 
-  // Add Javascript to allow iFrame to work.
-  drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') . '/js/commerce_paypoint_hosted.js');
-
-  // Wrap the order for easier access to data.
-  $wrapper = entity_metadata_wrapper('commerce_order', $order);
-
-  $total = commerce_line_items_total($wrapper->commerce_line_items);
-
-  // Add tax if we have sales tax in the order.
-  $total['amount'] = sprintf('%.2f', $wrapper->commerce_order_total->amount->value() / 100);
-  $total['currency_code'] = $total['currency_code'] ?: 'GBP';
-
-  // Load customer profile.
-  $profile = commerce_customer_profile_load($order->commerce_customer_billing[LANGUAGE_NONE][0]['profile_id']);
-
-  // Get user billing address.
-  $billing_address = $profile->commerce_customer_address[LANGUAGE_NONE][0];
-
-  // Get user delivery address.
-  $delivery_address = NULL;
-
-  if (isset($order->commerce_customer_shipping)) {
-    $delivery_profile = commerce_customer_profile_load($order->commerce_customer_shipping[LANGUAGE_NONE][0]['profile_id']);
-    $delivery_address = $delivery_profile->commerce_customer_address[LANGUAGE_NONE][0];
-  }
-
   $settings = $payment_method['settings'];
+  $ppo = commerce_paypoint_advanced_init_payment($order, $settings);
 
-  module_load_include('inc', 'commerce_paypoint_advanced', 'commerce_paypoint_advanced.class');
-  $hosted = $settings['connectivity']['request_type'] == 'hosted';
-  $url = commerce_paypoint_advanced_server_url($settings['testing']['test_status']);
-  $auth = $settings['merchant'];
-
-  // Initialize and send the PayPoint request.
-  $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
-  $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
-  $abortUrl  = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
-  $email = user_load($order->uid)->mail;
-  $address = array(
-    'line1'         => $billing_address['thoroughfare'],
-    'line2'         => $billing_address['premise'],
-    'line3'         => $billing_address['sub_premise'],
-    'line4'         => $billing_address['organisation_name'],
-    'city'          => $billing_address['locality'],
-    'region'        => $billing_address['administrative_area'],
-    'postcode'      => $billing_address['postal_code'],
-    'countryCode'   => $billing_address['country'],
-  );
-  $telephone = '';
-  $ip_address = ip_address();
-  $ppo = new PPOAdvancedPayment($url, $auth['username'], $auth['password'], $auth['instId'], $hosted);
-  $ppo->setSessionReturnUrl($returnUrl);
-  $ppo->setSessionNotificationUrl($notifyUrl);
-  $ppo->setSessionRestoreUrl($abortUrl);
-  $ppo->setCustomerMerchantId($order->uid);
-  $ppo->setCustomerDetails($billing_address['name_line'], $address, $telephone, $email, $ip_address);
-  $ppo->setTransactionMoneyFixed($total['amount'], $total['currency_code']);
-  // $ppo->setTransactionMerchantReference('your_reference_here'); // @fixme
-  $response = array();
-  try {
-    // Call PayPoint to get payment form that can then be included in an iFrame.
-    $response = $ppo->sendProcessPayment();
-  }
-  catch (Exception $e) {
-    watchdog_exception('commerce_paypoint_advanced', $e);
-  }
   $response = $ppo->getLastResponse();
   $status = $ppo->getLastStatus();
   $code = $ppo->getLastCode();
   $data = $ppo->getLastData();
 
-  if ($settings['connectivity']['debug'] || variable_get('commerce_paypoint_debug', FALSE)) {
-    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => print_r($response, TRUE)), WATCHDOG_DEBUG);
-    function_exists('dpm') && user_access('administer site configuration') && dpm($response);
-  }
-
   // Create a new payment transaction and setup the amount.
   $transaction = commerce_payment_transaction_new('commerce_paypoint_advanced', $order->order_id);
-  $transaction->amount = $total['amount'];
-  $transaction->currency_code = $total['currency_code'];
+  $transaction->amount = $ppo->getTransactionMoney('amount');
+  $transaction->currency_code = $ppo->getTransactionMoney('currency');
   $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
   // $transaction->instance_id = $auth['instId'];
   $transaction->payload[REQUEST_TIME] = $response;
@@ -124,6 +56,9 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       $iframe_enabled = (bool)$settings['integration_type']['use_iframe'];
 
       if ($iframe_enabled) {
+        // Add Javascript to allow iFrame to work.
+        drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') . '/js/commerce_paypoint_hosted.js');
+
         // Build the iFrame for the next step.
         $form['#action'] = $data->redirectUrl;
         $form['#method'] = 'GET';

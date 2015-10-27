@@ -1012,7 +1012,7 @@ function commerce_paypoint_advanced_order_form($form, &$form_state, $order, $set
  * @return
  *   The URL to use to submit requests to the PayPoint server.
  */
-function commerce_paypoint_advanced_server_url($mode, $hosted = TRUE) {
+function commerce_paypoint_advanced_server_url($mode = COMMERCE_PAYPOINT_TEST_MODE_TEST, $hosted = TRUE) {
   switch ($mode) {
     case COMMERCE_PAYPOINT_TEST_MODE_TEST:
       return $hosted ? PAYPOINT_ADV_MITE_HOSTED_ENDPOINT : PAYPOINT_ADV_MITE_API_ENDPOINT;
@@ -1046,3 +1046,104 @@ function commerce_paypoint_advanced_index_page() {
   $output .= '&nbsp;' . t("Click the help icon to view docs about the PayPoint.net's Advanced Payments.");
   return $output;
 }
+
+/**
+ * Initialize the PayPoint payment based on the provided order.
+ *
+ * @param $order
+ *   Existing order to based on. If not specified, use the existing user's cart order.
+ * @param $settings
+ *   Payment settings (same as: $payment_method['settings'])
+ *
+ * @return
+ *   Return PayPoint payment class.
+ */
+function commerce_paypoint_advanced_init_payment($order = NULL, $settings = array()) {
+
+  if (!$order) {
+    global $user;
+    if (!$order = commerce_cart_order_load($user->uid)) {
+      return FALSE;
+    }
+  }
+
+  // Wrap the order for easier access to data.
+  $wrapper = entity_metadata_wrapper('commerce_order', $order);
+
+  $total = commerce_line_items_total($wrapper->commerce_line_items);
+  $total['amount'] = sprintf('%.2f', $wrapper->commerce_order_total->amount->value() / 100);
+  $total['currency_code'] = $total['currency_code'] ?: 'GBP';
+
+  $telephone = '';
+  $ip_address = ip_address();
+  $email = user_load($order->uid)->mail;
+
+  module_load_include('inc', 'commerce_paypoint_advanced', 'commerce_paypoint_advanced.class');
+
+  $hosted = (@$settings['connectivity']['request_type'] == 'hosted') ?: TRUE;
+  $url = commerce_paypoint_advanced_server_url($settings['testing']['test_status']);
+  $auth = $settings['merchant'];
+
+  $ppo = new PPOAdvancedPayment($url, $auth['username'], $auth['password'], $auth['instId'], $hosted);
+  if (!$ppo->sendPing()) {
+    return FALSE;
+  }
+
+  if (module_exists('commerce_customer')) {
+    // Load customer profile.
+    $profile = commerce_customer_profile_load($order->commerce_customer_billing[LANGUAGE_NONE][0]['profile_id']);
+
+    // Get user billing address.
+    $billing_address = $profile->commerce_customer_address[LANGUAGE_NONE][0];
+
+    // Get user delivery address.
+    $delivery_address = NULL;
+
+    if (isset($order->commerce_customer_shipping)) {
+      $delivery_profile = commerce_customer_profile_load($order->commerce_customer_shipping[LANGUAGE_NONE][0]['profile_id']);
+      $delivery_address = $delivery_profile->commerce_customer_address[LANGUAGE_NONE][0];
+    }
+
+    $address = array(
+      'line1'         => $billing_address['thoroughfare'],
+      'line2'         => $billing_address['premise'],
+      'line3'         => $billing_address['sub_premise'],
+      'line4'         => $billing_address['organisation_name'],
+      'city'          => $billing_address['locality'],
+      'region'        => $billing_address['administrative_area'],
+      'postcode'      => $billing_address['postal_code'],
+      'countryCode'   => $billing_address['country'] ?: "GB",
+    );
+    $ppo->setCustomerDetails($billing_address['name_line'], $address, $telephone, $email, $ip_address);
+  }
+
+  // Initialize and send the PayPoint request.
+  $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
+  $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
+  $abortUrl  = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
+
+  $ppo->setSessionReturnUrl($returnUrl);
+  $ppo->setSessionNotificationUrl($notifyUrl);
+  $ppo->setSessionRestoreUrl($abortUrl);
+  $ppo->setCustomerMerchantId($order->uid);
+  $ppo->setTransactionMoneyFixed($total['amount'], $total['currency_code']);
+  // $ppo->setTransactionMerchantReference('your_reference_here'); // @todo
+  $response = array();
+  try {
+    // Call PayPoint to get payment form that can then be included in an iFrame.
+    $response = $ppo->sendProcessPayment();
+  }
+  catch (Exception $e) {
+    watchdog_exception('commerce_paypoint_advanced', $e);
+    watchdog('commerce_paypoint_advanced', 'PayPoint error response:\n<br>%data', array('%data' => print_r($ppo->getLastResponse(), TRUE)), WATCHDOG_ERROR);
+    return FALSE;
+  }
+
+  if ($settings['connectivity']['debug'] || variable_get('commerce_paypoint_debug', FALSE)) {
+    watchdog('commerce_paypoint_advanced', 'PayPoint response:\n<br>%data', array('%data' => print_r($response, TRUE)), WATCHDOG_DEBUG);
+    function_exists('dpm') && user_access('administer site configuration') && dpm($response);
+  }
+
+  return $ppo;
+}
+

@@ -174,6 +174,20 @@ class PPOAdvancedPayment {
     return $this->response ? $this->response : FALSE;
   }
 
+  /*
+   * Return transaction money amount and currency.
+   *
+   * @param
+   *  $key string
+   *    Sub-key for getting value from transaction array.
+   *
+   * @return
+   *  If $key is specified, return value of selected key, otherwise return the corresponding array.
+   */
+  function getTransactionMoney($key = NULL) {
+    return $key ? $this->transaction['money'][$key] : $this->transaction['money'];
+  }
+
   /** SETTERS **/
 
   /** Transaction Setters **/
