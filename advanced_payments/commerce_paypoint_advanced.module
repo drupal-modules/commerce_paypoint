@@ -1067,6 +1067,12 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
     }
   }
 
+  if (!$settings) {
+    // Load default settings if present. See: /admin/commerce/config/payment-methods
+    $payment_instance = commerce_payment_method_instance_load('paypoint_advanced|commerce_payment_paypoint_advanced');
+    $settings = $payment_instance['settings'];
+  }
+
   // Wrap the order for easier access to data.
   $wrapper = entity_metadata_wrapper('commerce_order', $order);
 
