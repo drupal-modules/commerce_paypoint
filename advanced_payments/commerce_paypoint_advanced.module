@@ -1156,19 +1156,33 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
 
 /**
  * Implements iFrame form.
+ *
+ * @param $form: Nested array of form elements that comprise the form.
+ * @param $form_state: A keyed array containing the current state of the form.
+ * @param $iframe_src string
+ *   The default URL of the iframe. Can be used to set endpoint directly, bypassing the redirection.
+ * @param $redirectUrl string
+ *   The URL used in submit form to direct your customer to to start the hosted session. Leave empty to not perform any redirection.
+ *
+ * @return
+ *   A keyed array containing the generated iframe form.
  */
-function commerce_paypoint_advanced_iframe_form($form, &$form_state, $redirectUrl) {
+function commerce_paypoint_advanced_iframe_form($form, &$form_state, $iframe_src = 'commerce_paypoint/paypoint_waiting_page', $redirectUrl = '') {
 
-  $form['#action'] = $redirectUrl ?: '';
-  $form['#method'] = 'GET';
-  $form['#attributes']['target'] = 'iframe_paypoint';
+  if ($redirectUrl) {
+    // Generate submit form only if $redirectUrl is specified.
+    $form['#action'] = $redirectUrl;
+    $form['#method'] = 'GET';
+    $form['#attributes']['target'] = 'iframe_paypoint';
 
-  $form['submit'] = array(
-    '#type'  => 'submit',
-    '#value' => t('Proceed to PayPoint'),
-  );
+    $form['submit'] = array(
+      '#type'  => 'submit',
+      '#value' => t('Proceed to PayPoint'),
+    );
+  }
+  $iframe_src = !filter_var($iframe_src, FILTER_VALIDATE_URL) ? url($iframe_src) : $iframe_src;
   $form['iframe_paypoint'] = array(
-    '#markup' => '<iframe style="width: 600px; height:500px" scrolling="no" frameborder="0" name="iframe_paypoint" id="iframe_paypoint" src="' . url('commerce_paypoint/paypoint_waiting_page') . '"></iframe>',
+    '#markup' => '<iframe style="width: 600px; height:500px" scrolling="no" frameborder="0" name="iframe_paypoint" id="iframe_paypoint" src="' . $iframe_src . '"></iframe>',
   );
   return $form;
 }

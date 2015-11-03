@@ -61,7 +61,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
         drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') . '/js/commerce_paypoint_hosted.js');
 
         // Build the iFrame for the next step.
-        return drupal_get_form('commerce_paypoint_advanced_iframe_form', $data->redirectUrl);
+        return drupal_get_form('commerce_paypoint_advanced_iframe_form', 'commerce_paypoint/paypoint_waiting_page', $data->redirectUrl);
       }
       else {
         header("Location: " . $data->redirectUrl);
