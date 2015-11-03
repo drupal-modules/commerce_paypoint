@@ -188,6 +188,17 @@ class PPOAdvancedPayment {
     return $key ? $this->transaction['money'][$key] : $this->transaction['money'];
   }
 
+  /*
+   * The URL you should direct your customer to to start the hosted session.
+   *
+   * @return
+   *  Return redirect URL from the last response, otherwise return empty string if it's not available.
+   */
+  function getRedirectUrl() {
+    $data = $this->getLastData();
+    return !empty($data->redirectUrl) ? $data->redirectUrl : '';
+  }
+
   /** SETTERS **/
 
   /** Transaction Setters **/

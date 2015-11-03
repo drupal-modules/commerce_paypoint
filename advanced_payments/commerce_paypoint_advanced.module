@@ -1124,6 +1124,7 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
   }
 
   // Initialize and send the PayPoint request.
+  // @fixme: payment_redirect_key is empty.
   $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
   $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
   $abortUrl  = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
