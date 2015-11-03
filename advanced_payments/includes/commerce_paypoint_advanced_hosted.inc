@@ -56,23 +56,12 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       $iframe_enabled = (bool)$settings['integration_type']['use_iframe'];
 
       if ($iframe_enabled) {
+
         // Add Javascript to allow iFrame to work.
         drupal_add_js(drupal_get_path('module', 'commerce_paypoint_advanced') . '/js/commerce_paypoint_hosted.js');
 
         // Build the iFrame for the next step.
-        $form['#action'] = $data->redirectUrl;
-        $form['#method'] = 'GET';
-        $form['#attributes']['target'] = 'iframe_paypoint';
-
-        $form['submit'] = array(
-          '#type'  => 'submit',
-          '#value' => t('Proceed to PayPoint'),
-        );
-        $form['iframe_paypoint'] = array(
-          '#markup' => '<iframe style="width: 600px; height:500px" scrolling="no" frameborder="0" name="iframe_paypoint" id="iframe_paypoint" src="' . url('commerce_paypoint/paypoint_waiting_page') . '"></iframe>',
-        );
-
-        return $form;
+        return drupal_get_form('commerce_paypoint_advanced_iframe_form', $data->redirectUrl);
       }
       else {
         header("Location: " . $data->redirectUrl);

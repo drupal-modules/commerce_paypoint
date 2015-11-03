@@ -1154,3 +1154,21 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
   return $ppo;
 }
 
+/**
+ * Implements iFrame form.
+ */
+function commerce_paypoint_advanced_iframe_form($form, &$form_state, $redirectUrl) {
+
+  $form['#action'] = $redirectUrl ?: '';
+  $form['#method'] = 'GET';
+  $form['#attributes']['target'] = 'iframe_paypoint';
+
+  $form['submit'] = array(
+    '#type'  => 'submit',
+    '#value' => t('Proceed to PayPoint'),
+  );
+  $form['iframe_paypoint'] = array(
+    '#markup' => '<iframe style="width: 600px; height:500px" scrolling="no" frameborder="0" name="iframe_paypoint" id="iframe_paypoint" src="' . url('commerce_paypoint/paypoint_waiting_page') . '"></iframe>',
+  );
+  return $form;
+}
