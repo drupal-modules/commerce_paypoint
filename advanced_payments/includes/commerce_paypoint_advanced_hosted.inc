@@ -31,8 +31,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
   // $transaction->instance_id = $auth['instId'];
   $transaction->payload[REQUEST_TIME] = $response;
-  //$transaction->payload['VendorTxCode'] = $data['VendorTxCode'];
-
+  // $transaction->payload['VendorTxCode'] = $data['VendorTxCode'];
   // Add the user id to the transaction.
   $transaction->payload['merchantCustomerId'] = $order->uid;
 
@@ -53,7 +52,7 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       $transaction->remote_id = $data->sessionId;
       commerce_payment_transaction_save($transaction);
 
-      $iframe_enabled = (bool)$settings['integration_type']['use_iframe'];
+      $iframe_enabled = (bool) $settings['integration_type']['use_iframe'];
 
       if ($iframe_enabled) {
 
@@ -161,7 +160,7 @@ function commerce_paypoint_advanced_notify_callback($order_id, $key, $debug_vps 
       $notification['message'] = t('Multiple matching transaction found');
       watchdog('commerce_paypoint_advanced', 'Multiple matching transaction found in
       PayPoint Hosted REST_XML Callback for order %order_id',
-        array('%order_id' =>$order_id), WATCHDOG_ERROR);
+        array('%order_id' => $order_id), WATCHDOG_ERROR);
     }
 
     // Verify the transaction.
@@ -307,13 +306,11 @@ function commerce_paypoint_advanced_notify_callback($order_id, $key, $debug_vps 
   $eoln = chr(13) . chr(10);
 
   if (array_key_exists('cancel', $notification)) {
-    $notification['redirect'] =   url
-    ('checkout/' . $order_id . '/payment/back/' . $payment_key,
+    $notification['redirect'] = url('checkout/' . $order_id . '/payment/back/' . $payment_key,
       array('absolute' => TRUE));
-  } else {
-    $notification['redirect'] =   url
-    ('checkout/' .
-      $order_id. '/payment/return/' . $payment_key,
+  }
+  else {
+    $notification['redirect'] = url('checkout/' . $order_id . '/payment/return/' . $payment_key,
       array('absolute' => TRUE));
   }
 
@@ -330,4 +327,3 @@ function commerce_paypoint_advanced_notify_callback($order_id, $key, $debug_vps 
   */
   exit;
 }
-
