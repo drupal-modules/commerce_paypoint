@@ -69,6 +69,9 @@ class PPOAdvancedPayment {
    * be processed with 3D Secure. Configuring your account for 3D Secure can be performed
    * at boarding or at a later date – it’s up to you.
    *
+   * Notes:
+   *   -  Authorisations expire by default after 7 days. After this time, you won’t be able to Capture or Cancel the request.
+   *
    * @see: https://developer.paypoint.com/payments/docs/#payments/make_a_payment
    */
 
@@ -420,8 +423,8 @@ class PPOAdvancedPayment {
    *    $returnUrl string Mandatory
    *      Mandatory: The URL that we will return your customer after the processing the transaction.
    */
-  function setSessionReturnUrl($url) {
-    $this->session['returnUrl']['url']  = $url;
+  function setSessionReturnUrl($returnUrl) {
+    $this->session['returnUrl']['url']  = $returnUrl;
   }
 
   /*
@@ -432,8 +435,8 @@ class PPOAdvancedPayment {
    *      The URL that we will return your customer to if they cancel the hosted session.
    *      If omitted the returnUrl is used if they cancel.
    */
-  function setSessionCancelUrl($url) {
-    $this->session['cancelUrl']['url']  = $url;
+  function setSessionCancelUrl($cancelUrl) {
+    $this->session['cancelUrl']['url']  = $cancelUrl;
   }
 
   /*
@@ -444,9 +447,10 @@ class PPOAdvancedPayment {
    *      The URL of PayPoint hosted session.
    *      We'll take your customer to this URL in the event they cancel their PayPal payment
    *      with the "Cancel and return to...." link. You will need to use this field if you iFrame our hosted product.
+   *      You will need to use this field if you iFrame the hosted product.
    */
-  function setSessionRestoreUrl($url) {
-    $this->session['restoreUrl']['url'] = $url;
+  function setSessionRestoreUrl($restoreUrl) {
+    $this->session['restoreUrl']['url'] = $restoreUrl;
   }
 
   /**
