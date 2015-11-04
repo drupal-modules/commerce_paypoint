@@ -17,8 +17,10 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
   }
 
   $settings = $payment_method['settings'];
-  $ppo = commerce_paypoint_advanced_init_payment($order, $settings);
+  $iframe_enabled = (bool) $settings['integration_type']['use_iframe'];
 
+  // Initialize payment and get the PayPoint response.
+  $ppo = commerce_paypoint_advanced_init_payment($order, $settings, $iframe_enabled);
   $response = $ppo->getLastResponse();
   $status = $ppo->getLastStatus();
   $code = $ppo->getLastCode();
@@ -51,8 +53,6 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
       $transaction->remote_status = $status;
       $transaction->remote_id = $data->sessionId;
       commerce_payment_transaction_save($transaction);
-
-      $iframe_enabled = (bool) $settings['integration_type']['use_iframe'];
 
       if ($iframe_enabled) {
 

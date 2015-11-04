@@ -1058,7 +1058,7 @@ function commerce_paypoint_advanced_index_page() {
  * @return
  *   Return PayPoint payment class.
  */
-function commerce_paypoint_advanced_init_payment($order = NULL, $settings = array()) {
+function commerce_paypoint_advanced_init_payment($order = NULL, $settings = array(), $iframe = FALSE) {
 
   if (!$order) {
     global $user;
@@ -1068,7 +1068,7 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
   }
 
   if (!$settings) {
-    // Load default settings if present. See: /admin/commerce/config/payment-methods
+    // Load default settings of the payment method instance if present. See: /admin/commerce/config/payment-methods
     $payment_instance = commerce_payment_method_instance_load('paypoint_advanced|commerce_payment_paypoint_advanced');
     $settings = $payment_instance['settings'];
   }
@@ -1125,13 +1125,17 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
 
   // Initialize and send the PayPoint request.
   // @fixme: payment_redirect_key is empty.
-  $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
-  $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
-  $abortUrl  = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
+  if ($iframe) {
+    $returnUrl = $abortUrl = url(current_path(), array('absolute' => TRUE));
+  } else {
+    $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
+    $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
+  }
+  !$abortUrl  ?: $ppo->setSessionRestoreUrl($abortUrl);
+  !$returnUrl ?: $ppo->setSessionReturnUrl($returnUrl);
+  !$notifyUrl ?: $ppo->setSessionNotificationUrl($notifyUrl);
+  !$postAuthCallbackUrl ?: $ppo->setSessionPostAuthCallbackUrl($postAuthCallback); // @todo
 
-  $ppo->setSessionReturnUrl($returnUrl);
-  $ppo->setSessionNotificationUrl($notifyUrl);
-  $ppo->setSessionRestoreUrl($abortUrl);
   $ppo->setCustomerMerchantId($order->uid);
   $ppo->setTransactionMoneyFixed($total['amount'], $total['currency_code']);
   // $ppo->setTransactionMerchantReference('your_reference_here'); // @todo
@@ -1163,11 +1167,13 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
  *   The default URL of the iframe. Can be used to set endpoint directly, bypassing the redirection.
  * @param $redirectUrl string
  *   The URL used in submit form to direct your customer to to start the hosted session. Leave empty to not perform any redirection.
+ * @param $options array
+ *   Not implemented yet. But may be used for some specific iframe options.
  *
  * @return
  *   A keyed array containing the generated iframe form.
  */
-function commerce_paypoint_advanced_iframe_form($form, &$form_state, $iframe_src = 'commerce_paypoint/paypoint_waiting_page', $redirectUrl = '') {
+function commerce_paypoint_advanced_iframe_form($form, &$form_state, $iframe_src = 'commerce_paypoint/paypoint_waiting_page', $redirectUrl = '', $options = array()) {
 
   if ($redirectUrl) {
     // Generate submit form only if $redirectUrl is specified.
