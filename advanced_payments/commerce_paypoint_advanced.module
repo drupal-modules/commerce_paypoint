@@ -35,7 +35,15 @@ function commerce_paypoint_advanced_menu() {
     'page callback' => 'commerce_paypoint_advanced_waiting_page',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
-    'file' => 'includes/commerce_paypoint_advanced_hosted.inc',
+    'file' => 'includes/commerce_paypoint_advanced.pages.inc',
+  );
+
+  // Payment page result for iframe.
+  $items['commerce_paypoint/payment_result'] = array(
+    'page callback' => 'commerce_paypoint_advanced_payment_result_page',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/commerce_paypoint_advanced.pages.inc',
   );
 
   // View help topic index.
@@ -502,11 +510,18 @@ function _commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, 
 /**
  * Payment method callback: redirect form return validation.
  */
-function _commerce_paypoint_advanced_redirect_form_validate($order, $payment_method) {
+function commerce_paypoint_advanced_redirect_form_validate($order, $payment_method) {
 
   // This may be an unnecessary step, but if for some reason the user does end
   // up returning at the success URL with a Failed payment, go back.
   if (!empty($_POST['payment_status']) && $_POST['payment_status'] == 'Failed') {
+    return FALSE;
+  }
+
+  // If for some reason the payment redirect key in this return post does not
+  // match that in the order, prevent processing.
+  if (empty($order->data['payment_redirect_key'])) {
+    watchdog('commerce_paypoint_advanced', 'Customer returned from PayPoint does not have a redirect key.', array(), WATCHDOG_WARNING);
     return FALSE;
   }
 }
@@ -1126,7 +1141,7 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
   // Initialize and send the PayPoint request.
   // @fixme: payment_redirect_key is empty.
   if ($iframe) {
-    $returnUrl = $abortUrl = url(current_path(), array('absolute' => TRUE));
+    $returnUrl = $abortUrl = url("commerce_paypoint/payment_result", array('absolute' => TRUE));
   } else {
     $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
     $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));

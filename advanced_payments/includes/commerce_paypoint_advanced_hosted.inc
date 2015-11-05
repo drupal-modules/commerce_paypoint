@@ -93,17 +93,6 @@ function commerce_paypoint_advanced_redirect_form($form, &$form_state, $order, $
 }
 
 /**
- * Outputs a temporary page before the PayPoint form is submitted.
- *
- * Displayed when there is a load delay or if the user has Javascript disabled.
- */
-function commerce_paypoint_advanced_waiting_page() {
-  print ('<html><head><title></title></head><body><p>');
-  print t('Please wait to be redirected to the payment page.');
-  print ('</p></body></html>');
-}
-
-/**
  * Callback to receive and process the notifications (REST_XML) of completed Cash Issue and Cash Payments to.
  *
  * @param string $order_id
