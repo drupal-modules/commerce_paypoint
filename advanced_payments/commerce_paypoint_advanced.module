@@ -1146,10 +1146,10 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
     $returnUrl = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
     $notifyUrl = url('commerce_paypoint/notify-callback', array('absolute' => TRUE));
   }
-  !$abortUrl  ?: $ppo->setSessionRestoreUrl($abortUrl);
-  !$returnUrl ?: $ppo->setSessionReturnUrl($returnUrl);
-  !$notifyUrl ?: $ppo->setSessionNotificationUrl($notifyUrl);
-  !$postAuthCallbackUrl ?: $ppo->setSessionPostAuthCallbackUrl($postAuthCallback); // @todo
+  isset($abortUrl)  && $ppo->setSessionRestoreUrl($abortUrl);
+  isset($returnUrl) && $ppo->setSessionReturnUrl($returnUrl);
+  isset($notifyUrl) && $ppo->setSessionNotificationUrl($notifyUrl);
+  isset($postAuthCallbackUrl) && $ppo->setSessionPostAuthCallbackUrl($postAuthCallback); // @todo
 
   $ppo->setCustomerMerchantId($order->uid);
   $ppo->setTransactionMoneyFixed($total['amount'], $total['currency_code']);
