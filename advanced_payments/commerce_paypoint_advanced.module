@@ -1126,14 +1126,14 @@ function commerce_paypoint_advanced_init_payment($order = NULL, $settings = arra
     }
 
     $address = array(
-      'line1'         => $billing_address['thoroughfare'],
-      'line2'         => $billing_address['premise'],
-      'line3'         => $billing_address['sub_premise'],
-      'line4'         => $billing_address['organisation_name'],
-      'city'          => $billing_address['locality'],
-      'region'        => $billing_address['administrative_area'],
-      'postcode'      => $billing_address['postal_code'],
-      'countryCode'   => $billing_address['country'] ?: "GB",
+      'line1'         => !empty($billing_address['thoroughfare']) ? $billing_address['thoroughfare'] : '',
+      'line2'         => !empty($billing_address['premise']) ? $billing_address['premise'] : '',
+      'line3'         => !empty($billing_address['sub_premise']) ? $billing_address['sub_premise'] : '',
+      'line4'         => !empty($billing_address['organisation_name']) ? $billing_address['organisation_name'] : '',
+      'city'          => !empty($billing_address['locality']) ? $billing_address['locality'] : '',
+      'region'        => !empty($billing_address['administrative_area']) ? $billing_address['administrative_area'] : '',
+      'postcode'      => !empty($billing_address['postal_code']) ? $billing_address['postal_code'] : '',
+      'countryCode'   => !empty($billing_address['country']) ? $billing_address['country'] : "GB",
     );
     $ppo->setCustomerDetails($billing_address['name_line'], $address, $telephone, $email, $ip_address);
   }
