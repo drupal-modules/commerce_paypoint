@@ -368,11 +368,11 @@ class PPOAdvancedPayment {
    */
 
   function setCustomerDetails($name, $address, $telephone, $emailAddress, $ipAddress) {
-    $this->customer['details']['name'] = $name;
-    $this->customer['details']['address'] = $address;
-    $this->customer['details']['telephone'] = $telephone;
-    $this->customer['details']['emailAddress'] = $emailAddress;
-    $this->customer['details']['ipAddress'] = $ipAddress;
+    !empty($name) ? $this->customer['details']['name'] = $name : NULL;
+    !empty($address) ? $this->customer['details']['address'] = $address : NULL;
+    !empty($telephone) ? $this->customer['details']['telephone'] = $telephone : NULL;
+    !empty($emailAddress) ? $this->customer['details']['emailAddress'] = $emailAddress : NULL;
+    !empty($ipAddress) ? $this->customer['details']['ipAddress'] = $ipAddress : NULL;
   }
 
   /** Custom Fields Setters **/
